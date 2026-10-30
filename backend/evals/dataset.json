@@ -1,0 +1,92 @@
+[
+  {
+    "id": "eval_01",
+    "description": "I transferred 25,000 naira from GTBank to my friend's OPay account with Session ID 100004241030123456789012345678 but he has not received it.",
+    "expected_category": "FAILED_TRANSFER",
+    "expected_amount": 25000,
+    "expected_is_emergency": false,
+    "expected_is_complete": false,
+    "expected_next_step": "STAGE_1_PROVIDER_COMPLAINT"
+  },
+  {
+    "id": "eval_02",
+    "description": "They debit me 50k from Access Bank since morning for transfer to Zenith, money no enter recipient account.",
+    "expected_category": "FAILED_TRANSFER",
+    "expected_amount": 50000,
+    "expected_is_emergency": false,
+    "expected_is_complete": false,
+    "expected_next_step": "STAGE_1_PROVIDER_COMPLAINT"
+  },
+  {
+    "id": "eval_03",
+    "description": "I bought 5000 MTN data on my GTBank mobile banking app. The bank debited me but my MTN line has not been credited with any data.",
+    "expected_category": "UNDELIVERED_AIRTIME_DATA",
+    "expected_amount": 5000,
+    "expected_is_emergency": false,
+    "expected_is_complete": false,
+    "expected_next_step": "STAGE_1_PROVIDER_COMPLAINT"
+  },
+  {
+    "id": "eval_04",
+    "description": "Someone stole my phone in traffic and they are emptying my account right now on GTBank! Help me lock it!",
+    "expected_category": "STOLEN_FUNDS_FRAUD",
+    "expected_amount": null,
+    "expected_is_emergency": true,
+    "expected_is_complete": false,
+    "expected_next_step": "EMERGENCY_LOCK_AND_LIEN"
+  },
+  {
+    "id": "eval_05",
+    "description": "I paid an Instagram boutique 45,000 naira for 2 dresses on October 15. The delivery date was October 20. She has refused to deliver and blocked me on WhatsApp.",
+    "expected_category": "MERCHANT_NON_DELIVERY",
+    "expected_amount": 45000,
+    "expected_is_emergency": false,
+    "expected_is_complete": false,
+    "expected_next_step": "FCCPC_COMMERCIAL_REDRESS"
+  },
+  {
+    "id": "eval_06",
+    "description": "I bought a laptop charger for 32,000 naira on a website using my card via Paystack checkout. The merchant website is down and no charger was shipped.",
+    "expected_category": "MERCHANT_NON_DELIVERY",
+    "expected_amount": 32000,
+    "expected_is_emergency": false,
+    "expected_is_complete": false,
+    "expected_next_step": "GATEWAY_CHARGEBACK"
+  },
+  {
+    "id": "eval_07",
+    "description": "I lost 2 million naira in a Telegram crypto trading bot that promised 50% weekly return.",
+    "expected_category": "OUT_OF_SCOPE",
+    "expected_amount": null,
+    "expected_is_emergency": false,
+    "expected_is_complete": true,
+    "expected_next_step": "GENERAL_ADVISORY"
+  },
+  {
+    "id": "eval_08",
+    "description": "Someone gave me a fake landlord agreement in Surulere.",
+    "expected_category": "OUT_OF_SCOPE",
+    "expected_amount": null,
+    "expected_is_emergency": false,
+    "expected_is_complete": true,
+    "expected_next_step": "GENERAL_ADVISORY"
+  },
+  {
+    "id": "eval_09",
+    "description": "I transferred 120k from Access Bank to Zenith Bank over 20 days ago. I reported it to Access (Ticket ACC-948201) but they haven't refunded me.",
+    "expected_category": "FAILED_TRANSFER",
+    "expected_amount": 120000,
+    "expected_is_emergency": false,
+    "expected_is_complete": false,
+    "expected_next_step": "STAGE_2_REGULATOR_ESCALATION"
+  },
+  {
+    "id": "eval_10",
+    "description": "I recharged 3,000 Airtel airtime on my SIM, debited from FirstBank, no airtime. I called Airtel (Ticket AIR-849201) 8 days ago and no response.",
+    "expected_category": "UNDELIVERED_AIRTIME_DATA",
+    "expected_amount": 3000,
+    "expected_is_emergency": false,
+    "expected_is_complete": false,
+    "expected_next_step": "STAGE_2_REGULATOR_ESCALATION"
+  }
+]

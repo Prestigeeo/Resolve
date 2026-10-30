@@ -1,0 +1,82 @@
+[
+  {
+    "id": "cbn_cpd_lodgment",
+    "publisher": "Central Bank of Nigeria (CBN)",
+    "title": "CBN Consumer Complaint Lodgment & Escalation Procedure",
+    "url": "https://www.cbn.gov.ng/FinInc/FinLit/LodgeComplaint.html",
+    "category": "FAILED_TRANSFER",
+    "stage": "STAGE_2_REGULATOR_ESCALATION",
+    "statutory_basis": "CBN Consumer Protection Framework",
+    "summary": "Mandates that commercial banks must resolve consumer electronic complaints within 14 days. If the bank fails to resolve or issue a satisfactory response, consumers can escalate directly to the Consumer Protection Department (CPD) via cpd@cbn.gov.ng."
+  },
+  {
+    "id": "cbn_eft_guidelines",
+    "publisher": "Central Bank of Nigeria (CBN)",
+    "title": "CBN Guidelines on Electronic Payment Channels & Direct Debits",
+    "url": "https://www.cbn.gov.ng/supervision/cpdcomgt.html",
+    "category": "FAILED_TRANSFER",
+    "stage": "STAGE_1_PROVIDER_COMPLAINT",
+    "statutory_basis": "CBN Electronic Funds Transfer Regulations",
+    "summary": "Directs that instant failed interbank transfers require NIP Session ID tracing, and same-bank failed transfers must be automatically reversed within 24 hours."
+  },
+  {
+    "id": "ncc_complaint_procedure",
+    "publisher": "Nigerian Communications Commission (NCC)",
+    "title": "NCC Consumer Complaints Procedure",
+    "url": "https://consumer.ncc.gov.ng/consumer-complaints/procedure-to-file-a-complaint",
+    "category": "UNDELIVERED_AIRTIME_DATA",
+    "stage": "STAGE_1_PROVIDER_COMPLAINT",
+    "statutory_basis": "NCC Consumer Code of Practice Regulations 2007",
+    "summary": "Requires consumers to first lodge their service complaints directly with their telecom service provider and obtain a unique complaint ticket reference."
+  },
+  {
+    "id": "ncc_article_126_escalation",
+    "publisher": "Nigerian Communications Commission (NCC)",
+    "title": "NCC Guidance on Escalating Telecom Complaints (Article 126)",
+    "url": "https://consumer.ncc.gov.ng/articles/126-before-you-escalate-your-complaint-steps-to-take-first",
+    "category": "UNDELIVERED_AIRTIME_DATA",
+    "stage": "STAGE_2_REGULATOR_ESCALATION",
+    "statutory_basis": "Nigerian Communications Act 2003",
+    "summary": "Empowers consumers to escalate unresolved telecom complaints to the NCC via Toll-Free 622 or consumer.ncc.gov.ng if the telecom provider fails to resolve within their published SLA."
+  },
+  {
+    "id": "cbn_fraud_framework",
+    "publisher": "Central Bank of Nigeria & NIBSS",
+    "title": "CBN Framework on Fraud Desk Operations and Precautionary Liens",
+    "url": "https://www.cbn.gov.ng/supervision/cpdcomgt.html",
+    "category": "STOLEN_FUNDS_FRAUD",
+    "stage": "EMERGENCY_LOCK_AND_LIEN",
+    "statutory_basis": "CBN Fraud Desk Circular & Cybercrimes Act 2015",
+    "summary": "Establishes mandatory 24/7 bank fraud desks and interbank communication via the NIBSS portal to place immediate precautionary Post-No-Debit (PND) restrictions on recipient accounts upon reported fraud."
+  },
+  {
+    "id": "npf_nccc_cybercrime",
+    "publisher": "Nigeria Police Force National Cybercrime Centre (NPF-NCCC)",
+    "title": "NPF-NCCC Cybercrime e-Reporting and Investigation Protocol",
+    "url": "https://incb.npf.gov.ng/",
+    "category": "STOLEN_FUNDS_FRAUD",
+    "stage": "LAW_ENFORCEMENT_PETITION",
+    "statutory_basis": "Cybercrimes (Prohibition, Prevention, etc.) Act 2015",
+    "summary": "Provides the official law-enforcement channel to report online financial fraud, account hacking, and unauthorized debits, generating the official police extract needed for court-ordered fund repatriation."
+  },
+  {
+    "id": "fccpc_fccpa_2018",
+    "publisher": "Federal Competition and Consumer Protection Commission (FCCPC)",
+    "title": "Federal Competition and Consumer Protection Act (FCCPA) 2018 (Sections 114–130)",
+    "url": "https://complaints.fccpc.gov.ng",
+    "category": "MERCHANT_NON_DELIVERY",
+    "stage": "FCCPC_COMMERCIAL_REDRESS",
+    "statutory_basis": "FCCPA 2018 (Sections 114, 120, 127)",
+    "summary": "Guarantees consumers the right to timely performance of service, goods matching description, and full refunds when a supplier fails to deliver, prohibiting deceptive marketing and unfair business practices."
+  },
+  {
+    "id": "paystack_flutterwave_chargeback",
+    "publisher": "Payment Card Industry & Gateway Rules",
+    "title": "Card Scheme & Gateway Chargeback Rules for Merchandise Not Received",
+    "url": "https://paystack.com/lookup",
+    "category": "MERCHANT_NON_DELIVERY",
+    "stage": "GATEWAY_CHARGEBACK",
+    "statutory_basis": "Mastercard/Visa Chargeback Rules (Reason Code: Goods/Services Not Received)",
+    "summary": "Permits buyers who paid via online checkout or card to lodge chargeback claims and transaction inquiries on dispute lookup portals to place temporary holds on merchant settlement."
+  }
+]
