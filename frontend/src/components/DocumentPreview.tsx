@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { GeneratedDocument } from "../lib/api";
-import { Copy, Check, Download, Printer, ShieldCheck, Share2 } from "lucide-react";
+import { Copy, Check, Download, ShieldCheck, Scale, Send } from "lucide-react";
 
 interface DocumentPreviewProps {
   document: GeneratedDocument;
@@ -28,37 +28,40 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({ document }) =>
   };
 
   return (
-    <div className="bg-white border-2 border-emerald-500 rounded-3xl p-5 sm:p-7 shadow-sm mb-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 gap-3">
+    <div className="relative overflow-hidden rounded-3xl border-2 border-blue-500/50 bg-slate-900/90 backdrop-blur-xl p-6 sm:p-8 shadow-2xl mb-6">
+      {/* Background ambient glow */}
+      <div className="absolute top-0 right-0 w-80 h-80 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between pb-5 border-b border-white/10 gap-4">
         <div>
-          <div className="flex items-center space-x-1.5">
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 uppercase">
-              Fact-Verified Document
+          <div className="flex items-center space-x-2">
+            <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-300 border border-blue-500/30 uppercase tracking-wider">
+              Fact-Verified Legal Dossier
             </span>
-            <span className="text-[10px] font-semibold text-slate-500 flex items-center space-x-1">
-              <ShieldCheck className="w-3 h-3 text-emerald-600" />
+            <span className="text-[10px] font-semibold text-slate-300 flex items-center space-x-1">
+              <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
               <span>0% Hallucinations Verified</span>
             </span>
           </div>
-          <h2 className="text-base sm:text-lg font-bold text-slate-900 mt-1">{document.title}</h2>
-          <p className="text-xs text-slate-500">
-            Recipient: <strong>{document.recipient_institution}</strong> ({document.recipient_contact_info})
+          <h2 className="text-base sm:text-lg font-bold text-white mt-1.5">{document.title}</h2>
+          <p className="text-xs text-slate-400">
+            Recipient: <strong className="text-white">{document.recipient_institution}</strong> ({document.recipient_contact_info})
           </p>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2.5">
           <button
             onClick={handleCopy}
-            className="inline-flex items-center space-x-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 px-3.5 py-2 rounded-xl text-xs font-bold transition-all border border-slate-200"
+            className="inline-flex items-center space-x-2 bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2.5 rounded-xl text-xs font-bold transition-all border border-white/10 shadow-sm"
           >
-            {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+            {copied ? <Check className="w-3.5 h-3.5 text-blue-400" /> : <Copy className="w-3.5 h-3.5" />}
             <span>{copied ? "Copied!" : "Copy Text"}</span>
           </button>
 
           <button
             onClick={handleDownload}
-            className="inline-flex items-center space-x-1.5 bg-slate-900 hover:bg-slate-800 text-white px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm"
+            className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-600/30 border border-white/10"
           >
             <Download className="w-3.5 h-3.5" />
             <span>Download</span>
@@ -66,35 +69,35 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({ document }) =>
         </div>
       </div>
 
-      {/* Document Letterhead Body */}
-      <div className="mt-5 bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-6 font-mono text-xs text-slate-800 leading-relaxed whitespace-pre-wrap select-all">
-        <div className="font-bold text-slate-950 pb-3 border-b border-slate-200 mb-3">
+      {/* Letterhead Body */}
+      <div className="relative z-10 mt-6 bg-slate-950/80 border border-white/10 rounded-2xl p-5 sm:p-7 font-mono text-xs text-slate-300 leading-relaxed whitespace-pre-wrap select-all shadow-inner">
+        <div className="font-bold text-white pb-3.5 border-b border-white/10 mb-4 text-sm tracking-wide">
           {document.subject_line}
         </div>
         {document.body_text}
 
-        <div className="mt-5 pt-4 border-t border-slate-200 font-sans">
-          <h4 className="text-xs font-bold text-slate-900 mb-2">LIST OF EVIDENCE ATTACHED:</h4>
-          <ul className="list-disc pl-4 space-y-1 text-slate-700">
+        <div className="mt-6 pt-5 border-t border-white/10 font-sans">
+          <h4 className="text-xs font-bold text-white mb-2.5 tracking-wider uppercase">List of Evidence Attached:</h4>
+          <ul className="list-disc pl-4 space-y-1 text-slate-300">
             {document.formal_evidence_list.map((ev, i) => (
               <li key={i}>{ev}</li>
             ))}
           </ul>
 
-          <div className="mt-4 p-3 bg-amber-50/60 border border-amber-200 rounded-xl text-[11px] text-amber-900">
-            <strong>Statutory Notice:</strong> {document.statutory_notice_clause}
+          <div className="mt-5 p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-[11px] text-amber-200 leading-relaxed">
+            <strong className="text-amber-100">Statutory Notice:</strong> {document.statutory_notice_clause}
           </div>
         </div>
       </div>
 
-      {/* How to Submit */}
-      <div className="mt-5">
-        <h4 className="text-xs font-bold text-slate-900 mb-2">Recommended Submission Channels:</h4>
+      {/* Submission Channels */}
+      <div className="relative z-10 mt-6">
+        <h4 className="text-xs font-bold text-white mb-2.5">Official Submission Channels:</h4>
         <div className="flex flex-wrap gap-2">
           {document.suggested_submission_methods.map((method, idx) => (
             <span
               key={idx}
-              className="text-xs bg-slate-100 text-slate-800 px-3 py-1.5 rounded-xl border border-slate-200 font-medium"
+              className="text-xs bg-slate-800 text-slate-300 px-3.5 py-2 rounded-xl border border-white/10 font-medium"
             >
               {method}
             </span>

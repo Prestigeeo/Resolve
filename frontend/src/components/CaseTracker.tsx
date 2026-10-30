@@ -1,9 +1,7 @@
 import React, { useState } from "react";
-import { Clock, Shield, CheckCircle2, AlertCircle } from "lucide-react";
+import { Clock, CheckCircle2, ShieldAlert, Tag } from "lucide-react";
 
 interface CaseTrackerProps {
-  caseId: string;
-  providerContacted?: boolean;
   existingTicketRef?: string;
   countdownDays?: number;
   onUpdateTicket: (ticket: string) => Promise<void>;
@@ -11,8 +9,6 @@ interface CaseTrackerProps {
 }
 
 export const CaseTracker: React.FC<CaseTrackerProps> = ({
-  caseId,
-  providerContacted,
   existingTicketRef,
   countdownDays,
   onUpdateTicket,
@@ -27,20 +23,23 @@ export const CaseTracker: React.FC<CaseTrackerProps> = ({
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-sm mb-6">
-      <div className="flex items-center space-x-2 pb-3 border-b border-slate-100">
-        <Clock className="w-4 h-4 text-emerald-600" />
-        <h3 className="text-sm font-bold text-slate-900">Case Tracking & Regulatory SLA Countdown</h3>
+    <div className="rounded-3xl border border-white/10 bg-slate-900/80 backdrop-blur-xl p-6 sm:p-7 shadow-xl mb-6">
+      <div className="flex items-center space-x-2.5 pb-4 border-b border-white/10">
+        <Clock className="w-5 h-5 text-blue-400" />
+        <div>
+          <h3 className="text-sm font-bold text-white">Complaint Reference & Regulatory Countdown</h3>
+          <p className="text-xs text-slate-400">Track statutory resolution periods mandated by Nigerian regulatory frameworks.</p>
+        </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Ticket logging form */}
-        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
-          <label className="text-xs font-bold text-slate-800 block mb-1">
-            Bank / Telco Complaint Ticket Reference
+        <div className="bg-slate-950/70 border border-white/10 rounded-2xl p-4 sm:p-5">
+          <label className="text-xs font-bold text-white block mb-1">
+            Bank / Telco Ticket Reference Number
           </label>
-          <p className="text-[11px] text-slate-500 mb-2.5">
-            Always demand a Ticket ID from your provider. It is legally required to escalate to the CBN or NCC.
+          <p className="text-[11px] text-slate-400 mb-3 leading-relaxed">
+            Always demand a Ticket ID from your provider. A verified tracking reference is required by law to escalate to the CBN or NCC.
           </p>
 
           <form onSubmit={handleSave} className="flex space-x-2">
@@ -49,40 +48,40 @@ export const CaseTracker: React.FC<CaseTrackerProps> = ({
               placeholder="e.g. ACC-849201 or #10029"
               value={ticketInput}
               onChange={(e) => setTicketInput(e.target.value)}
-              className="flex-1 bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 outline-none focus:border-emerald-600"
+              className="flex-1 bg-slate-900 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 placeholder:text-slate-600"
             />
             <button
               type="submit"
               disabled={isLoading || !ticketInput.trim()}
-              className="bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition-all"
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-md shadow-blue-600/30 border border-white/10"
             >
               {isLoading ? "Saving..." : "Save"}
             </button>
           </form>
 
           {existingTicketRef && (
-            <div className="mt-2.5 flex items-center space-x-1.5 text-xs text-emerald-800 font-medium">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Active Ticket: <strong>{existingTicketRef}</strong></span>
+            <div className="mt-3 flex items-center space-x-2 text-xs text-blue-300 font-medium bg-blue-500/10 border border-blue-500/20 rounded-xl p-2.5">
+              <CheckCircle2 className="w-4 h-4 text-blue-400 shrink-0" />
+              <span>Active Tracking Reference: <strong className="text-white">{existingTicketRef}</strong></span>
             </div>
           )}
         </div>
 
-        {/* Countdown card */}
-        <div className="bg-emerald-50/60 border border-emerald-200 rounded-2xl p-4 flex flex-col justify-between">
+        {/* Regulatory SLA Countdown */}
+        <div className="bg-gradient-to-br from-slate-950/80 to-indigo-950/30 border border-white/10 rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
           <div>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-              REGULATORY COUNTDOWN
+            <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-300 border border-blue-500/30 uppercase tracking-wider">
+              Statutory Resolution SLA
             </span>
-            <h4 className="text-sm font-bold text-slate-900 mt-1">CBN / NCC Statutory Window</h4>
-            <p className="text-[11px] text-slate-600 mt-1">
-              By Central Bank regulation, banks have <strong>14 days</strong> to resolve electronic complaints before you can escalate directly to the CBN Consumer Protection Department (CPD).
+            <h4 className="text-sm font-bold text-white mt-2">CBN / NCC Mandated Window</h4>
+            <p className="text-[11px] text-slate-300 mt-1 leading-relaxed">
+              By Central Bank regulation, financial institutions have <strong>14 days</strong> from lodging to resolve electronic payment complaints before direct escalation to the CBN Consumer Protection Department (CPD).
             </p>
           </div>
 
-          <div className="mt-3 pt-2 border-t border-emerald-200 flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-800">Status:</span>
-            <span className="text-xs font-extrabold text-emerald-700">
+          <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-400">Escalation Eligibility:</span>
+            <span className="text-xs font-black text-amber-300 bg-amber-500/10 border border-amber-500/30 px-3 py-1 rounded-full">
               {countdownDays !== undefined && countdownDays > 0 
                 ? `${countdownDays} Days Remaining` 
                 : "Eligible for Direct Escalation"}

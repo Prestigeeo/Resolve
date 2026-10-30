@@ -1,23 +1,22 @@
 import React, { useState } from "react";
 import { ClarifyingQuestion } from "../lib/api";
-import { HelpCircle, CheckCircle2, ArrowRight, AlertTriangle } from "lucide-react";
+import { HelpCircle, ArrowRight, AlertTriangle } from "lucide-react";
 
 interface ClarificationWizardProps {
   questions: ClarifyingQuestion[];
   category: string;
-  onSubmitAnswers: (answers: Record<string, any>) => Promise<void>;
+  onSubmitAnswers: (answers: Record<string, string | number | boolean>) => Promise<void>;
   isLoading: boolean;
 }
 
 export const ClarificationWizard: React.FC<ClarificationWizardProps> = ({
   questions,
-  category,
   onSubmitAnswers,
   isLoading
 }) => {
-  const [answers, setAnswers] = useState<Record<string, any>>({});
+  const [answers, setAnswers] = useState<Record<string, string | number | boolean>>({});
 
-  const handleInputChange = (field: string, value: any) => {
+  const handleInputChange = (field: string, value: string | number | boolean) => {
     setAnswers((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -27,32 +26,35 @@ export const ClarificationWizard: React.FC<ClarificationWizardProps> = ({
   };
 
   return (
-    <div className="bg-white border-2 border-amber-300 rounded-3xl p-5 sm:p-7 shadow-sm mb-6">
-      <div className="flex items-start space-x-3 mb-4">
-        <div className="p-2.5 bg-amber-500 rounded-xl text-white shadow-md shadow-amber-500/20 shrink-0">
+    <div className="relative overflow-hidden rounded-3xl border border-amber-500/40 bg-gradient-to-br from-slate-900/90 via-slate-900/95 to-slate-950 p-6 sm:p-8 shadow-2xl mb-6 backdrop-blur-xl">
+      {/* Background ambient amber glow */}
+      <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="relative z-10 flex items-start space-x-3.5 mb-5">
+        <div className="p-3 bg-gradient-to-br from-amber-500 to-amber-700 rounded-2xl text-white shadow-lg shadow-amber-500/20 shrink-0 border border-amber-400/30">
           <AlertTriangle className="w-5 h-5" />
         </div>
         <div>
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 uppercase">
+          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30 uppercase tracking-wider">
             Investigative Evidence Gate
           </span>
-          <h2 className="text-lg sm:text-xl font-bold text-slate-900 mt-1">
-            We need a few critical details before taking action
+          <h2 className="text-lg sm:text-xl font-bold text-white mt-1 tracking-tight">
+            Additional details required before drafting
           </h2>
-          <p className="text-xs text-slate-600 mt-0.5">
-            Resolve does not generate premature letters without verified facts. Answering these targeted questions ensures your complaint complies with official <strong>CBN, NCC, or FCCPC</strong> standards.
+          <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+            Resolve does not generate unverified claims. Answering these targeted questions guarantees your complaint meets strict <strong>CBN, NCC, or FCCPC</strong> evidentiary standards.
           </p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4 mt-5">
+      <form onSubmit={handleSubmit} className="relative z-10 space-y-4 mt-6">
         {questions.map((q, idx) => {
-          const currentVal = answers[q.field_target] || "";
+          const currentVal = answers[q.field_target] !== undefined ? String(answers[q.field_target]) : "";
           return (
-            <div key={q.id} className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+            <div key={q.id} className="bg-slate-950/70 border border-white/10 rounded-2xl p-4 sm:p-5">
               <div className="flex items-start justify-between">
-                <label className="text-xs font-bold text-slate-900 flex items-center space-x-1.5">
-                  <span className="w-5 h-5 rounded-full bg-slate-900 text-white flex items-center justify-center text-[10px]">
+                <label className="text-xs font-bold text-white flex items-center space-x-2">
+                  <span className="w-6 h-6 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center text-[11px] font-bold shadow-md shadow-blue-600/30">
                     {idx + 1}
                   </span>
                   <span>{q.question_text}</span>
@@ -60,14 +62,14 @@ export const ClarificationWizard: React.FC<ClarificationWizardProps> = ({
               </div>
 
               {q.help_text && (
-                <div className="mt-1 text-[11px] text-slate-500 flex items-center space-x-1">
-                  <HelpCircle className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <div className="mt-1.5 text-[11px] text-slate-400 flex items-center space-x-1.5 pl-8">
+                  <HelpCircle className="w-3.5 h-3.5 text-blue-400 shrink-0" />
                   <span>{q.help_text}</span>
                 </div>
               )}
 
-              {/* Input Renderers */}
-              <div className="mt-2.5">
+              {/* Input Types */}
+              <div className="mt-3 pl-8">
                 {q.input_type === "select" && q.options ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {q.options.map((opt) => (
@@ -75,10 +77,10 @@ export const ClarificationWizard: React.FC<ClarificationWizardProps> = ({
                         key={opt}
                         type="button"
                         onClick={() => handleInputChange(q.field_target, opt)}
-                        className={`p-2.5 rounded-xl text-xs text-left font-medium transition-all border ${
+                        className={`p-3 rounded-xl text-xs text-left font-medium transition-all border ${
                           currentVal === opt
-                            ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
-                            : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
+                            ? "bg-blue-600 text-white border-blue-400 shadow-lg shadow-blue-600/30 font-bold"
+                            : "bg-slate-900 text-slate-300 border-white/5 hover:bg-slate-800 hover:border-white/15"
                         }`}
                       >
                         {opt}
@@ -90,7 +92,7 @@ export const ClarificationWizard: React.FC<ClarificationWizardProps> = ({
                     type="date"
                     value={currentVal}
                     onChange={(e) => handleInputChange(q.field_target, e.target.value)}
-                    className="w-full sm:w-64 bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:border-emerald-600 outline-none"
+                    className="w-full sm:w-64 bg-slate-900 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none"
                   />
                 ) : q.input_type === "number" ? (
                   <input
@@ -98,15 +100,15 @@ export const ClarificationWizard: React.FC<ClarificationWizardProps> = ({
                     placeholder="e.g. 25000"
                     value={currentVal}
                     onChange={(e) => handleInputChange(q.field_target, e.target.value)}
-                    className="w-full sm:w-64 bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 focus:border-emerald-600 outline-none"
+                    className="w-full sm:w-64 bg-slate-900 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none placeholder:text-slate-600"
                   />
                 ) : (
                   <input
                     type="text"
-                    placeholder="Type answer here..."
+                    placeholder="Enter answer here..."
                     value={currentVal}
                     onChange={(e) => handleInputChange(q.field_target, e.target.value)}
-                    className="w-full bg-white border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:border-emerald-600 outline-none"
+                    className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-xs text-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none placeholder:text-slate-600"
                   />
                 )}
               </div>
@@ -114,15 +116,15 @@ export const ClarificationWizard: React.FC<ClarificationWizardProps> = ({
           );
         })}
 
-        <div className="flex items-center justify-end pt-2">
+        <div className="flex items-center justify-end pt-3">
           <button
             type="submit"
             disabled={isLoading || Object.keys(answers).length === 0}
-            className="inline-flex items-center space-x-2 bg-slate-900 hover:bg-slate-800 disabled:opacity-50 text-white font-bold text-xs px-5 py-3 rounded-xl transition-all shadow-md"
+            className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-50 text-white font-bold text-xs px-6 py-3.5 rounded-xl transition-all shadow-lg shadow-blue-600/30 border border-white/10"
           >
-            {isLoading ? <span>Updating Case Facts...</span> : (
+            {isLoading ? <span>Updating Facts...</span> : (
               <>
-                <span>Save Answers & Unlock Resolution Path</span>
+                <span>Save Facts & Unlock Resolution Path</span>
                 <ArrowRight className="w-4 h-4" />
               </>
             )}
