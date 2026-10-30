@@ -212,7 +212,7 @@ export const SOURCES_DATA = [
 
 // Fallback In-Browser Resolution Engine (Guarantees Zero "Load failed")
 class ClientSideFallbackEngine {
-  private static cases: Map<string, ExtractedCaseFacts> = new Map();
+  public static cases: Map<string, ExtractedCaseFacts> = new Map();
 
   static analyze(rawText: string, preselected?: string): IntakeAnalysisResponse {
     const textLower = rawText.toLowerCase();
@@ -589,17 +589,22 @@ export const api = {
     return ClientSideFallbackEngine.getDetails(caseId);
   },
 
-  async generateDocument(caseId: string, caseAccessToken: string): Promise<GeneratedDocument> {
-    try {
-      const res = await fetch(`${API_BASE_URL}/cases/${caseId}/generate-document`, {
-        method: "POST",
-        headers: { "X-Case-Token": caseAccessToken }
-      });
-      if (res.ok) return await res.json();
-    } catch {
-      // Fallback
+  async generateDocument(caseId?: string, caseAccessToken?: string, factsOverride?: ExtractedCaseFacts): Promise<GeneratedDocument> {
+    if (caseId && caseAccessToken) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/cases/${caseId}/generate-document`, {
+          method: "POST",
+          headers: { "X-Case-Token": caseAccessToken }
+        });
+        if (res.ok) return await res.json();
+      } catch {
+        // Fallback
+      }
     }
-    return ClientSideFallbackEngine.buildDocument(caseId);
+    if (factsOverride) {
+      ClientSideFallbackEngine.cases.set(caseId || "active_case", factsOverride);
+    }
+    return ClientSideFallbackEngine.buildDocument(caseId || "active_case");
   },
 
   async updateTicket(caseId: string, caseAccessToken: string, ticketRef: string) {
