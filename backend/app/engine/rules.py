@@ -23,11 +23,14 @@ class DeterministicRulesEngine:
         # Category 1: Failed Bank Transfer (CBN Framework)
         # ---------------------------------------------------------------------
         if category == IncidentCategory.FAILED_TRANSFER:
-            elapsed_days = (today - facts.transaction_date).days if facts.transaction_date else 0
+            # The provider's regulatory response period starts when the user
+            # lodges the complaint, not when the underlying transaction took
+            # place. Do not unlock an escalation merely because a ticket exists.
+            elapsed_days = (today - facts.provider_contact_date).days if facts.provider_contact_date else 0
             
             # Scenario A: Eligible for CBN Consumer Protection Department Escalation
             # Eligible if provider was contacted and more than 14 days have passed or provider gave unsatisfactory response
-            if facts.provider_contacted and (elapsed_days >= 14 or facts.existing_ticket_ref):
+            if facts.provider_contacted and facts.existing_ticket_ref and facts.provider_contact_date and elapsed_days >= 14:
                 citation = OfficialCitation(
                     publisher="Central Bank of Nigeria (CBN)",
                     title="CBN Consumer Complaint Lodgment & Escalation Procedure",
@@ -102,7 +105,11 @@ class DeterministicRulesEngine:
         # ---------------------------------------------------------------------
         elif category == IncidentCategory.UNDELIVERED_AIRTIME_DATA:
             # Scenario A: Stage 2 NCC 622 Escalation
-            if facts.provider_contacted and facts.existing_ticket_ref:
+            # Escalation requires both proof of the first-tier complaint and
+            # expiry of the response window. The current source catalogue uses
+            # a conservative 14-day window until provider-specific SLAs are
+            # verified and stored as structured source metadata.
+            if facts.provider_contacted and facts.existing_ticket_ref and facts.provider_contact_date and (today - facts.provider_contact_date).days >= 14:
                 citation = OfficialCitation(
                     publisher="Nigerian Communications Commission (NCC)",
                     title="NCC Consumer Complaints Procedure & Toll-Free 622 Hotline",

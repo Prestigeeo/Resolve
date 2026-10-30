@@ -1,13 +1,14 @@
 import json
 from decimal import Decimal
 from datetime import datetime, timezone, date
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlmodel import Session
 from ..database import get_session
 from ..models.case import CaseRecord
 from ..schemas.intake import IntakeRequest, IntakeAnalysisResponse, ClarificationSubmission
 from ..schemas.case import ExtractedCaseFacts, CaseStatus, IncidentCategory
 from ..security.guardrails import SecurityGuardrail
+from ..security.case_access import issue_case_access_token, require_case_access
 from ..ai.classifier import IssueClassifier
 from ..engine.completeness import CompletenessGatekeeper
 
@@ -29,7 +30,9 @@ async def analyze_intake(request: IntakeRequest, session: Session = Depends(get_
     status = CaseStatus.READY_FOR_COMPLAINT if is_complete else CaseStatus.NEEDS_CLARIFICATION
 
     # 4. Persistence
+    case_access_token, access_token_hash = issue_case_access_token()
     case_record = CaseRecord(
+        access_token_hash=access_token_hash,
         category=facts.category.value,
         status=status.value,
         is_urgent_emergency=facts.is_urgent_emergency,
@@ -54,6 +57,8 @@ async def analyze_intake(request: IntakeRequest, session: Session = Depends(get_
         message = f"Case facts verified for {facts.category.value}. Ready to generate your dispute document and statutory action steps."
 
     return IntakeAnalysisResponse(
+        case_id=case_record.id,
+        case_access_token=case_access_token,
         case_status=status,
         facts=facts,
         is_urgent_emergency=facts.is_urgent_emergency,
@@ -64,10 +69,11 @@ async def analyze_intake(request: IntakeRequest, session: Session = Depends(get_
     )
 
 @router.post("/clarify/{case_id}", response_model=IntakeAnalysisResponse)
-async def submit_clarification(case_id: str, submission: ClarificationSubmission, session: Session = Depends(get_session)):
+async def submit_clarification(case_id: str, submission: ClarificationSubmission, x_case_token: str | None = Header(default=None, alias="X-Case-Token"), session: Session = Depends(get_session)):
     case_record = session.get(CaseRecord, case_id)
     if not case_record:
         raise HTTPException(status_code=404, detail="Case not found.")
+    require_case_access(case_record, x_case_token)
 
     facts_dict = json.loads(case_record.facts_json)
     
@@ -80,6 +86,39 @@ async def submit_clarification(case_id: str, submission: ClarificationSubmission
                 pass
         elif field == "transaction_date" and value:
             facts_dict[field] = value
+        elif field == "category" and value:
+            category_map = {
+                "Failed Bank Transfer (debited, recipient not credited)": "FAILED_TRANSFER",
+                "Undelivered Airtime or Data bundle": "UNDELIVERED_AIRTIME_DATA",
+                "Unauthorized debit / Stolen funds": "STOLEN_FUNDS_FRAUD",
+                "Paid a merchant/vendor who refused to deliver goods or services": "MERCHANT_NON_DELIVERY",
+                "Other issue": "OUT_OF_SCOPE",
+            }
+            facts_dict[field] = category_map.get(str(value), value)
+        elif field == "payment_method" and value:
+            payment_map = {
+                "Direct Bank Transfer (sent money to an account number)": "DIRECT_BANK_TRANSFER",
+                "Online Checkout / Debit Card (entered card details on website or Paystack/Flutterwave)": "DEBIT_CARD_CHECKOUT",
+                "POS Terminal": "POS_TERMINAL",
+            }
+            facts_dict[field] = payment_map.get(str(value), value)
+        elif field == "vendor_response_state" and value:
+            response_map = {
+                "Vendor blocked me on WhatsApp / Instagram / Phone": "BLOCKED_BUYER_GHOSTED",
+                "Vendor is giving continuous excuses / stalling": "RESPONSIVE_STALLING",
+                "Vendor explicitly refused to deliver or refund": "REFUSED_REFUND",
+                "Vendor is completely unresponsive": "NO_RESPONSE",
+            }
+            facts_dict[field] = response_map.get(str(value), value)
+        elif field == "unauthorized_reason" and value:
+            reason_map = {
+                "My phone or SIM card was stolen": "STOLEN_PHONE_SIM",
+                "I received an unauthorized debit alert out of nowhere": "UNAUTHORIZED_DEBIT_ALERT",
+                "I was deceived into sharing an OTP or clicking a phishing link": "PHISHING_OTP",
+                "My ATM card details were compromised": "COMPROMISED_CARD",
+                "Other": "OTHER",
+            }
+            facts_dict[field] = reason_map.get(str(value), value)
         elif field == "provider_contacted" and value:
             facts_dict[field] = ("yes" in str(value).lower() or value is True)
         elif field == "purchased_via_bank_vtu" and value:
@@ -106,6 +145,10 @@ async def submit_clarification(case_id: str, submission: ClarificationSubmission
     session.refresh(case_record)
 
     return IntakeAnalysisResponse(
+        case_id=case_record.id,
+        # The client already possesses this token; it is intentionally not
+        # re-issued by a clarification response.
+        case_access_token=x_case_token,
         case_status=status,
         facts=updated_facts,
         is_urgent_emergency=updated_facts.is_urgent_emergency,

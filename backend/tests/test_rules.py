@@ -13,6 +13,7 @@ def test_failed_transfer_eligible_for_cbn_escalation():
         recipient_institution="Zenith Bank",
         session_id_or_ref="100004241030123456789012345678",
         provider_contacted=True,
+        provider_contact_date=date.today() - timedelta(days=16),
         existing_ticket_ref="ACC-948201",
         summary_of_incident="Transferred 120k over 20 days ago, bank refused to resolve."
     )

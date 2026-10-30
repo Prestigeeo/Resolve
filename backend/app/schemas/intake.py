@@ -21,6 +21,8 @@ class ClarificationSubmission(BaseModel):
     )
 
 class IntakeAnalysisResponse(BaseModel):
+    case_id: str
+    case_access_token: str
     case_status: CaseStatus
     facts: ExtractedCaseFacts
     is_urgent_emergency: bool = False

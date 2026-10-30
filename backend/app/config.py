@@ -20,6 +20,10 @@ class Settings(BaseSettings):
     # Environment
     ENVIRONMENT: Literal["development", "production", "testing"] = "development"
     DEBUG: bool = True
+    # Comma-separated browser origins allowed to call the public API. Keep this
+    # explicit: case capability tokens must never be readable from arbitrary
+    # websites through permissive CORS.
+    CORS_ORIGINS: str = "https://resolve-murex.vercel.app,http://localhost:3000"
     
     class Config:
         env_file = ".env"

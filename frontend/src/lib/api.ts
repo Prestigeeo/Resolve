@@ -1,5 +1,14 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
 
+async function requestError(res: Response, fallback: string): Promise<Error> {
+  try {
+    const payload = await res.json();
+    return new Error(payload.detail || payload.message || fallback);
+  } catch {
+    return new Error(fallback);
+  }
+}
+
 export interface ClarifyingQuestion {
   id: string;
   question_text: string;
@@ -33,6 +42,8 @@ export interface ExtractedCaseFacts {
 }
 
 export interface IntakeAnalysisResponse {
+  case_id: string;
+  case_access_token: string;
   case_status: string;
   facts: ExtractedCaseFacts;
   is_urgent_emergency: boolean;
@@ -103,39 +114,41 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ raw_text: rawText, preselected_category: preselectedCategory || null })
     });
-    if (!res.ok) throw new Error("Failed to analyze intake narrative");
+    if (!res.ok) throw await requestError(res, "Could not analyze the complaint. Please try again.");
     return res.json();
   },
 
-  async submitClarification(caseId: string, answers: Record<string, any>): Promise<IntakeAnalysisResponse> {
+  async submitClarification(caseId: string, caseAccessToken: string, answers: Record<string, any>): Promise<IntakeAnalysisResponse> {
     const res = await fetch(`${API_BASE_URL}/intake/clarify/${caseId}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "X-Case-Token": caseAccessToken },
       body: JSON.stringify({ answers })
     });
-    if (!res.ok) throw new Error("Failed to submit clarification answers");
+    if (!res.ok) throw await requestError(res, "Could not save those answers. Please try again.");
     return res.json();
   },
 
-  async getCaseDetails(caseId: string): Promise<{ facts: ExtractedCaseFacts; guidance: ResolutionGuidance; statutory_countdown_days?: number }> {
-    const res = await fetch(`${API_BASE_URL}/cases/${caseId}`);
-    if (!res.ok) throw new Error("Failed to fetch case details");
+  async getCaseDetails(caseId: string, caseAccessToken: string): Promise<{ facts: ExtractedCaseFacts; guidance: ResolutionGuidance; statutory_countdown_days?: number }> {
+    const res = await fetch(`${API_BASE_URL}/cases/${caseId}`, { headers: { "X-Case-Token": caseAccessToken } });
+    if (!res.ok) throw await requestError(res, "Could not load this private case.");
     return res.json();
   },
 
-  async generateDocument(caseId: string): Promise<GeneratedDocument> {
+  async generateDocument(caseId: string, caseAccessToken: string): Promise<GeneratedDocument> {
     const res = await fetch(`${API_BASE_URL}/cases/${caseId}/generate-document`, {
-      method: "POST"
+      method: "POST",
+      headers: { "X-Case-Token": caseAccessToken }
     });
-    if (!res.ok) throw new Error("Failed to generate grounded dispute document");
+    if (!res.ok) throw await requestError(res, "Could not generate the document.");
     return res.json();
   },
 
-  async updateTicket(caseId: string, ticketRef: string) {
+  async updateTicket(caseId: string, caseAccessToken: string, ticketRef: string) {
     const res = await fetch(`${API_BASE_URL}/cases/${caseId}/ticket?ticket_ref=${encodeURIComponent(ticketRef)}`, {
-      method: "PATCH"
+      method: "PATCH",
+      headers: { "X-Case-Token": caseAccessToken }
     });
-    if (!res.ok) throw new Error("Failed to update ticket reference");
+    if (!res.ok) throw await requestError(res, "Could not save the ticket reference.");
     return res.json();
   },
 

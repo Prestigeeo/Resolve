@@ -23,6 +23,7 @@ export default function Home() {
   const [countdownDays, setCountdownDays] = useState<number | undefined>(undefined);
   const [generatedDoc, setGeneratedDoc] = useState<GeneratedDocument | null>(null);
   const [activeCaseId, setActiveCaseId] = useState<string | null>(null);
+  const [caseAccessToken, setCaseAccessToken] = useState<string | null>(null);
 
   // Loading States
   const [isLoading, setIsLoading] = useState(false);
@@ -43,6 +44,8 @@ export default function Home() {
     try {
       const res = await api.analyzeIntake(rawText, category);
       setIntakeResult(res);
+      setActiveCaseId(res.case_id);
+      setCaseAccessToken(res.case_access_token);
 
       if (res.is_urgent_emergency) {
         setActiveTab("emergency");
@@ -52,15 +55,9 @@ export default function Home() {
       // (In SQLite local session, case ID is returned or persisted)
       // For immediate preview, we can derive or request details
       if (res.case_status === "READY_FOR_COMPLAINT") {
-        // Fetch case details from latest cases
-        const cases = await (await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"}/cases/`)).json();
-        if (cases && cases.length > 0) {
-          const latestCase = cases[0];
-          setActiveCaseId(latestCase.id);
-          const details = await api.getCaseDetails(latestCase.id);
-          setGuidance(details.guidance);
-          setCountdownDays(details.statutory_countdown_days);
-        }
+        const details = await api.getCaseDetails(res.case_id, res.case_access_token);
+        setGuidance(details.guidance);
+        setCountdownDays(details.statutory_countdown_days);
       }
     } catch (err: any) {
       setErrorMsg(err.message || "Could not analyze complaint. Ensure the backend is reachable.");
@@ -74,16 +71,13 @@ export default function Home() {
     setIsLoading(true);
     setErrorMsg(null);
     try {
-      // Find latest case id
-      const cases = await (await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1"}/cases/`)).json();
-      const currentId = activeCaseId || (cases[0] ? cases[0].id : null);
-      if (!currentId) throw new Error("No active case found to clarify.");
+      if (!activeCaseId || !caseAccessToken) throw new Error("Your private case session is missing. Please start a new case.");
 
-      const res = await api.submitClarification(currentId, answers);
+      const res = await api.submitClarification(activeCaseId, caseAccessToken, answers);
       setIntakeResult(res);
 
       if (res.case_status === "READY_FOR_COMPLAINT") {
-        const details = await api.getCaseDetails(currentId);
+        const details = await api.getCaseDetails(activeCaseId, caseAccessToken);
         setGuidance(details.guidance);
         setCountdownDays(details.statutory_countdown_days);
       }
@@ -96,11 +90,11 @@ export default function Home() {
 
   // Generate Document
   const handleGenerateDocument = async () => {
-    if (!activeCaseId) return;
+    if (!activeCaseId || !caseAccessToken) return;
     setIsGeneratingDoc(true);
     setErrorMsg(null);
     try {
-      const doc = await api.generateDocument(activeCaseId);
+      const doc = await api.generateDocument(activeCaseId, caseAccessToken);
       setGeneratedDoc(doc);
     } catch (err: any) {
       setErrorMsg(err.message || "Failed to generate document.");
@@ -111,11 +105,11 @@ export default function Home() {
 
   // Update Ticket
   const handleUpdateTicket = async (ticket: string) => {
-    if (!activeCaseId) return;
+    if (!activeCaseId || !caseAccessToken) return;
     setIsLoading(true);
     try {
-      await api.updateTicket(activeCaseId, ticket);
-      const details = await api.getCaseDetails(activeCaseId);
+      await api.updateTicket(activeCaseId, caseAccessToken, ticket);
+      const details = await api.getCaseDetails(activeCaseId, caseAccessToken);
       setGuidance(details.guidance);
       setCountdownDays(details.statutory_countdown_days);
     } catch (err: any) {
@@ -130,6 +124,7 @@ export default function Home() {
     setGuidance(null);
     setGeneratedDoc(null);
     setActiveCaseId(null);
+    setCaseAccessToken(null);
     setErrorMsg(null);
     setActiveTab("intake");
   };

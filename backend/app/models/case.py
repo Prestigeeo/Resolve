@@ -8,6 +8,10 @@ def get_utc_now() -> datetime:
 
 class CaseRecord(SQLModel, table=True):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
+    # Hash of the opaque capability returned only when a case is created. This
+    # lets an anonymous user continue their own case without making all cases
+    # publicly enumerable.
+    access_token_hash: str = Field(index=True)
     created_at: datetime = Field(default_factory=get_utc_now)
     updated_at: datetime = Field(default_factory=get_utc_now)
     

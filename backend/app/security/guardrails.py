@@ -10,9 +10,6 @@ class SecurityGuardrail:
     PIN_PATTERN = re.compile(r'\b(?:atm[- ]pin|card[- ]pin|pin|secret pin)(?:\s+is\s+|\s*[:=-]\s*|\s+)(\d{4})\b', re.IGNORECASE)
     CVV_PATTERN = re.compile(r'\b(?:cvv|cvc)(?:\s+is\s+|\s*[:=-]\s*|\s+)(\d{3})\b', re.IGNORECASE)
 
-    # Standalone BVN/NIN pattern (11 digits not part of a larger reference)
-    STANDALONE_BVN = re.compile(r'\b(?<![A-Za-z\-_])\d{11}(?![A-Za-z\-_])\b')
-
     URGENT_FRAUD_KEYWORDS = [
         "stole my phone",
         "stolen phone",
@@ -40,10 +37,9 @@ class SecurityGuardrail:
         if cls.BVN_NIN_PATTERN.search(sanitized):
             sanitized = cls.BVN_NIN_PATTERN.sub("[REDACTED_BVN_OR_NIN]", sanitized)
             redacted.append("BVN_NIN")
-        elif cls.STANDALONE_BVN.search(sanitized):
-            # If 11 standalone digits without letters (BVN/NIN length)
-            sanitized = cls.STANDALONE_BVN.sub("[REDACTED_BVN_OR_NIN]", sanitized)
-            redacted.append("BVN_NIN")
+        # Do not redact every standalone 11-digit number: Nigerian mobile
+        # numbers have that shape and are required for airtime/data disputes.
+        # BVN/NIN values are redacted only when their context is explicit.
 
         if cls.OTP_PATTERN.search(sanitized):
             sanitized = cls.OTP_PATTERN.sub("[REDACTED_OTP]", sanitized)

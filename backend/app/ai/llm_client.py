@@ -147,7 +147,9 @@ class LLMClient:
             confidence=0.98,
             is_urgent_emergency=(category == IncidentCategory.STOLEN_FUNDS_FRAUD),
             amount_ngn=amount,
-            transaction_date=date.today(),
+            # Never invent a transaction date. A missing date must remain
+            # missing so the evidence gate can request it.
+            transaction_date=None,
             payment_method=payment_method,
             sender_institution=sender_bank,
             session_id_or_ref=session_id,
