@@ -110,24 +110,26 @@ export default function Home() {
     try {
       const lower = text.toLowerCase();
 
-      // Check if user is asking for a formal letter
-      const wantsLetter = /draft|letter|petition|official document|demand notice|complaint letter/i.test(text);
-      if (wantsLetter && currentFacts) {
-        const doc = await api.generateDocument(activeCaseId || undefined, caseAccessToken || undefined, currentFacts);
-        const docReply: ChatMessage = {
-          id: "msg_ai_doc_" + Date.now(),
+      // 1. Direct Question Handler: "What does SLA mean?"
+      if (/what does sla mean|what is sla|meaning of sla|explain sla/i.test(lower)) {
+        const slaReply: ChatMessage = {
+          id: "msg_ai_" + Date.now(),
           sender: "resolve",
-          text: "Here is your official dispute letter, ready to send to your bank or the regulator. You can copy it or download it below:",
+          text: "SLA stands for **Service Level Agreement**.\n\nIn Nigerian banking, an SLA is the **legally mandated deadline** that your bank has to resolve an issue.\n\nUnder Central Bank of Nigeria (CBN) regulations, commercial banks have a **14-day mandatory SLA** to investigate and resolve failed electronic transfer complaints after you lodge a ticket.\n\nIf your bank fails to refund or resolve the transaction within that 14-day window, you earn the legal right to escalate directly to the Central Bank of Nigeria (cpd@cbn.gov.ng) for regulatory enforcement.\n\nHave you already reported this failed transfer to your bank, or would you like to draft a formal complaint letter now?",
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-          document: doc
+          interactiveOptions: [
+            { label: "Yes, I logged a ticket with my bank", value: "Yes, I opened a complaint ticket with customer care." },
+            { label: "No, I haven't reported it yet", value: "No, I have not reported it to my bank yet." },
+            { label: "Create Official Complaint Letter", value: "Please create my official complaint letter now." }
+          ]
         };
-        setMessages((prev) => [...prev, docReply]);
+        setMessages((prev) => [...prev, slaReply]);
         setIsTyping(false);
         return;
       }
 
-      // Check if user is asking how to find session ID
-      if (/how do i find|where is the session id|where to find/i.test(lower) && lower.includes("session")) {
+      // 2. Direct Question Handler: "Where is the Session ID?"
+      if (/how do i find|where is the session id|where to find|what is a session id/i.test(lower) && lower.includes("session")) {
         const sessionReply: ChatMessage = {
           id: "msg_ai_" + Date.now(),
           sender: "resolve",
@@ -144,18 +146,36 @@ export default function Home() {
         return;
       }
 
+      // 3. User asking for a formal letter
+      const wantsLetter = /draft|letter|petition|official document|demand notice|complaint letter/i.test(text);
+      if (wantsLetter && currentFacts) {
+        const doc = await api.generateDocument(activeCaseId || undefined, caseAccessToken || undefined, currentFacts);
+        const docReply: ChatMessage = {
+          id: "msg_ai_doc_" + Date.now(),
+          sender: "resolve",
+          text: "Here is your official dispute letter, ready to send to your bank or the regulator. You can copy it or download it below:",
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          document: doc
+        };
+        setMessages((prev) => [...prev, docReply]);
+        setIsTyping(false);
+        return;
+      }
+
       // Case 1: We ALREADY have an active ongoing case! (Never forget context!)
       if (currentFacts && currentFacts.category && currentFacts.category !== "AMBIGUOUS") {
         const updatedFacts = { ...currentFacts };
 
-        // Extract any new details provided in this turn
-        const amtMatch = lower.match(/(?:₦|ngn|naira|#)?\s*([0-9]{1,3}(?:,[0-9]{3})*|[0-9]+)\s*(?:naira|k|thousand)?/);
+        // Carefully extract amount (ONLY if it's NOT followed by days/hours)
+        const amtMatch = lower.match(/(?:₦|ngn|naira|#)\s*([0-9]{1,3}(?:,[0-9]{3})*|[0-9]+)|([0-9]{1,3}(?:,[0-9]{3})*|[0-9]+)\s*(?:naira|k|thousand)(?!\s*days?)/);
         if (amtMatch && !updatedFacts.amount_ngn) {
-          let val = parseFloat(amtMatch[1].replace(/,/g, ""));
+          const rawNum = amtMatch[1] || amtMatch[2];
+          let val = parseFloat(rawNum.replace(/,/g, ""));
           if ((lower.includes("k") || lower.includes("thousand")) && val < 1000) val *= 1000;
-          if (val > 0) updatedFacts.amount_ngn = val;
+          if (val >= 100) updatedFacts.amount_ngn = val;
         }
 
+        // Extract sender bank ONLY if explicitly named
         for (const b of ["GTBank", "Access Bank", "Zenith Bank", "UBA", "FirstBank", "OPay", "Moniepoint", "Kuda", "PalmPay", "Fidelity", "FCMB", "Stanbic", "Sterling", "Wema"]) {
           if (lower.includes(b.toLowerCase()) && !updatedFacts.sender_institution) {
             updatedFacts.sender_institution = b;
@@ -166,7 +186,7 @@ export default function Home() {
         const sessMatch = text.match(/\b(\d{15,35})\b/);
         if (sessMatch) updatedFacts.session_id_or_ref = sessMatch[1];
 
-        // Did the user mention waiting a number of days? (e.g. 7 days, 14 days, etc.)
+        // Check timeline mention (e.g. 7 days, 14 days, yesterday)
         const waitedMatch = lower.match(/(?:waited|been|waiting|past|over|for)\s*([0-9]+)\s*days?/);
         let daysMentioned = waitedMatch ? parseInt(waitedMatch[1]) : undefined;
         if (!daysMentioned && lower.includes("7 days")) daysMentioned = 7;
@@ -228,9 +248,28 @@ export default function Home() {
             return;
           }
 
-          // If bank or amount was just provided
-          const bankName = updatedFacts.sender_institution || "your bank";
-          const amountText = updatedFacts.amount_ngn ? `NGN ${updatedFacts.amount_ngn.toLocaleString()}` : "the amount";
+          // If user hasn't provided bank or amount yet
+          if (!updatedFacts.sender_institution || !updatedFacts.amount_ngn) {
+            const aiReply: ChatMessage = {
+              id: "msg_ai_" + Date.now(),
+              sender: "resolve",
+              text: "To help you take the exact right step: which bank or app did you send the money from, and roughly how much was it?",
+              timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+              interactiveOptions: [
+                { label: "GTBank", value: "I sent it from GTBank." },
+                { label: "Access Bank", value: "I sent it from Access Bank." },
+                { label: "OPay", value: "I sent it from my OPay app." },
+                { label: "Zenith Bank", value: "I sent it from Zenith Bank." }
+              ]
+            };
+            setMessages((prev) => [...prev, aiReply]);
+            setIsTyping(false);
+            return;
+          }
+
+          // If both bank and amount are present
+          const bankName = updatedFacts.sender_institution;
+          const amountText = `NGN ${updatedFacts.amount_ngn.toLocaleString()}`;
 
           const aiReply: ChatMessage = {
             id: "msg_ai_" + Date.now(),
@@ -238,7 +277,7 @@ export default function Home() {
             text: `Got it: ${amountText} from ${bankName}.\n\nTo give you the most accurate next step: roughly how long ago did this transfer happen?`,
             timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
             interactiveOptions: [
-              { label: "Happened today or yesterday (less than 48h)", value: "It happened within the last 48 hours." },
+              { label: "Happened within last 48 hours", value: "It happened within the last 48 hours." },
               { label: "I have waited 3 to 7 days", value: "I have already waited for 7 days the money has not been reversed." },
               { label: "Over 14 days ago without refund", value: "It has been more than 14 days with no refund." }
             ]
@@ -296,7 +335,7 @@ export default function Home() {
       // Scenario B: Failed Bank Transfer Initial Turn
       if (intakeRes.facts.category === "FAILED_TRANSFER") {
         const hasBank = Boolean(intakeRes.facts.sender_institution);
-        const hasAmount = Boolean(intakeRes.facts.amount_ngn);
+        const hasAmount = Boolean(intakeRes.facts.amount_ngn && intakeRes.facts.amount_ngn >= 100);
 
         let questionText = "Which bank or fintech app did you send the money from, and roughly how much was it?";
         let pills: Array<{ label: string; value: string }> = [
