@@ -162,6 +162,47 @@ export default function Home() {
         return;
       }
 
+      // 4. Try live Gemini on Vercel
+      try {
+        const geminiRes = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messages: [...messages, userMsg],
+            currentFacts
+          })
+        });
+
+        if (geminiRes.ok) {
+          const gemData = await geminiRes.json();
+          if (gemData.reply) {
+            // Also update category/facts if not already set
+            if (!currentFacts || currentFacts.category === "AMBIGUOUS") {
+              const intakeRes = await api.analyzeIntake(text);
+              setCurrentFacts(intakeRes.facts);
+              setActiveCaseId(intakeRes.case_id);
+              setCaseAccessToken(intakeRes.case_access_token);
+            }
+
+            const geminiReply: ChatMessage = {
+              id: "msg_ai_" + Date.now(),
+              sender: "resolve",
+              text: gemData.reply,
+              timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+              interactiveOptions: [
+                { label: "Create Official Complaint Letter", value: "Please create my official complaint letter now." },
+                { label: "What is my next step?", value: "What is my exact next step to resolve this?" }
+              ]
+            };
+            setMessages((prev) => [...prev, geminiReply]);
+            setIsTyping(false);
+            return;
+          }
+        }
+      } catch (err) {
+        // Fallback to local rule engine
+      }
+
       // Case 1: We ALREADY have an active ongoing case! (Never forget context!)
       if (currentFacts && currentFacts.category && currentFacts.category !== "AMBIGUOUS") {
         const updatedFacts = { ...currentFacts };
