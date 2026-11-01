@@ -146,7 +146,25 @@ export default function Home() {
         return;
       }
 
-      // 3. User asking for a formal letter
+      // 3. Direct Question Handler: Cryptocurrency / P2P Disputes
+      if (/crypto|cryptocurrency|bitcoin|btc|usdt|eth|p2p|binance|bybit|kucoin/i.test(lower)) {
+        const cryptoReply: ChatMessage = {
+          id: "msg_ai_" + Date.now(),
+          sender: "resolve",
+          text: "Cryptocurrency and P2P trades operate under specific regulatory boundaries in Nigeria:\n\n1. **No Bank / CBN SLA Reversals**: Under Central Bank of Nigeria (CBN) regulations, commercial banks **cannot reverse blockchain transfers** or intervene in P2P crypto trades. NIBSS Session IDs only trace Naira bank-to-bank transfers, not crypto.\n\n2. **P2P Exchange Trades (Binance, Bybit, KuCoin)**: If you transferred crypto on a P2P exchange and haven't received the cash transfer, **DO NOT release the crypto or confirm payment!** Click the **Appeal** button immediately inside the exchange app before the countdown timer expires. The platform's escrow will lock the funds pending proof.\n\n3. **Did you transfer Naira to buy crypto?** If your Nigerian bank debited your account for a Naira transfer to a P2P merchant who claims they never got it, that **Naira transfer leg** can be traced using your bank's 30-digit NIBSS Session ID.\n\n4. **Off-Exchange / WhatsApp Scams**: If you sent crypto directly to an unverified private wallet or Telegram/WhatsApp contact, banks have no mechanism to retrieve it. This is criminal fraud under the Cybercrimes Act 2015 and must be escalated to the Police Special Fraud Unit (PSFU) or EFCC.\n\nWhich of these situations matches what happened?",
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          interactiveOptions: [
+            { label: "P2P Exchange Appeal (Binance/Bybit)", value: "I traded on a P2P exchange and haven't received cash." },
+            { label: "My bank debited me for Naira", value: "My bank debited me for the Naira transfer to buy crypto." },
+            { label: "I was scammed outside an exchange", value: "I sent crypto directly to someone outside an exchange." }
+          ]
+        };
+        setMessages((prev) => [...prev, cryptoReply]);
+        setIsTyping(false);
+        return;
+      }
+
+      // 4. User asking for a formal letter
       const wantsLetter = /draft|letter|petition|official document|demand notice|complaint letter/i.test(text);
       if (wantsLetter && currentFacts) {
         const doc = await api.generateDocument(activeCaseId || undefined, caseAccessToken || undefined, currentFacts);
@@ -229,8 +247,8 @@ export default function Home() {
           }
         }
 
-        // Critical: If user clarifies that the recipient/vendor hasn't received the money, this is a FAILED_TRANSFER
-        if (/yet to receive|not received|didn't receive|did not receive|no enter|no credit|yet to get|hasn't gotten|has not gotten/i.test(lower)) {
+        // Critical: If user clarifies that the recipient/vendor hasn't received the money (and it's NOT crypto), this is a FAILED_TRANSFER
+        if (/yet to receive|not received|didn't receive|did not receive|no enter|no credit|yet to get|hasn't gotten|has not gotten/i.test(lower) && !/crypto|bitcoin|btc|usdt|p2p/i.test(lower)) {
           updatedFacts.category = "FAILED_TRANSFER";
         }
 

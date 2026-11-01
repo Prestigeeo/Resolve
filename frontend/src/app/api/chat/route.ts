@@ -84,7 +84,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No user message found" }, { status: 400 });
     }
 
-    const encodedKey = encodeURIComponent(apiKey);
     const candidateModels = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"];
 
     let reply = "";
@@ -92,8 +91,9 @@ export async function POST(req: Request) {
 
     for (const model of candidateModels) {
       try {
-        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodedKey}`;
-        const res = await fetch(geminiUrl, {
+        // Standard URL without query string key (AQ. auth keys require x-goog-api-key header)
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+        let res = await fetch(geminiUrl, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -108,6 +108,26 @@ export async function POST(req: Request) {
             }
           })
         });
+
+        // If header-only was rejected, try with query param as fallback
+        if (!res.ok && res.status !== 404) {
+          const urlWithKey = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+          res = await fetch(urlWithKey, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-goog-api-key": apiKey
+            },
+            body: JSON.stringify({
+              system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+              contents,
+              generationConfig: {
+                temperature: 0.3,
+                maxOutputTokens: 800
+              }
+            })
+          });
+        }
 
         if (res.ok) {
           const data = await res.json();
