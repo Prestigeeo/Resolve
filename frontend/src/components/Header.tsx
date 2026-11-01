@@ -10,19 +10,20 @@ import {
   HelpCircle, 
   MessageSquare, 
   Lock,
-  ChevronRight
+  ChevronRight,
+  History
 } from "lucide-react";
 
 interface NavItem {
-  id: "intake" | "emergency" | "tracker" | "sources" | "guide";
+  id: "intake" | "history" | "emergency" | "tracker" | "sources" | "guide";
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   alert?: boolean;
 }
 
 interface HeaderProps {
-  activeTab: "intake" | "emergency" | "tracker" | "sources" | "guide";
-  setActiveTab: (tab: "intake" | "emergency" | "tracker" | "sources" | "guide") => void;
+  activeTab: "intake" | "history" | "emergency" | "tracker" | "sources" | "guide";
+  setActiveTab: (tab: "intake" | "history" | "emergency" | "tracker" | "sources" | "guide") => void;
   onNewChat?: () => void;
   caseCategory?: string;
 }
@@ -36,12 +37,13 @@ export const Header: React.FC<HeaderProps> = ({
 
   const navItems: NavItem[] = [
     { id: "intake", label: "Chat Assistant", icon: MessageSquare },
+    { id: "history", label: "Dispute History", icon: History },
     { id: "emergency", label: "Bank Freeze Codes", icon: Lock, alert: true },
     { id: "guide", label: "How Redress Works", icon: HelpCircle },
     { id: "sources", label: "Official Regulators", icon: BookOpen },
   ];
 
-  const handleNavClick = (tab: "intake" | "emergency" | "tracker" | "sources" | "guide") => {
+  const handleNavClick = (tab: "intake" | "history" | "emergency" | "tracker" | "sources" | "guide") => {
     setActiveTab(tab);
     setMobileMenuOpen(false);
   };

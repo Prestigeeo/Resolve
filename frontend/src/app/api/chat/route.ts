@@ -19,12 +19,60 @@ COMMUNICATION GUIDELINES:
 
 export async function GET() {
   const rawKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
-  const cleanKey = rawKey.trim().replace(/^["']|["']$/g, "");
-  return NextResponse.json({
-    status: cleanKey ? "configured" : "missing_key",
-    hasKey: Boolean(cleanKey),
-    keyPrefix: cleanKey ? cleanKey.substring(0, 6) + "..." : null
-  });
+  const apiKey = rawKey.trim().replace(/^["']|["']$/g, "");
+  
+  if (!apiKey) {
+    return NextResponse.json({
+      status: "missing_key",
+      hasKey: false,
+      valid: false,
+      message: "GEMINI_API_KEY is not configured on Vercel."
+    });
+  }
+
+  // Ping Gemini API with a minimal token request to verify the key with Google
+  try {
+    const testUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+    const res = await fetch(testUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey
+      },
+      body: JSON.stringify({
+        contents: [{ role: "user", parts: [{ text: "hi" }] }],
+        generationConfig: { maxOutputTokens: 2 }
+      })
+    });
+
+    if (res.ok) {
+      return NextResponse.json({
+        status: "configured",
+        hasKey: true,
+        valid: true,
+        keyPrefix: apiKey.substring(0, 6) + "...",
+        message: "Gemini API key is active and verified by Google!"
+      });
+    }
+
+    const errText = await res.text();
+    return NextResponse.json({
+      status: "invalid_key",
+      hasKey: true,
+      valid: false,
+      googleStatus: res.status,
+      googleError: errText,
+      keyPrefix: apiKey.substring(0, 6) + "...",
+      message: `Google returned HTTP ${res.status}: ${errText}`
+    });
+  } catch (err: any) {
+    return NextResponse.json({
+      status: "network_error",
+      hasKey: true,
+      valid: false,
+      error: err.message
+    });
+  }
 }
 
 export async function POST(req: Request) {
@@ -91,7 +139,7 @@ export async function POST(req: Request) {
 
     for (const model of candidateModels) {
       try {
-        // Standard URL without query string key (AQ. auth keys require x-goog-api-key header)
+        // Attempt 1: Header auth (standard for AQ auth keys)
         const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
         let res = await fetch(geminiUrl, {
           method: "POST",
@@ -109,8 +157,8 @@ export async function POST(req: Request) {
           })
         });
 
-        // If header-only was rejected, try with query param as fallback
-        if (!res.ok && res.status !== 404) {
+        // Attempt 2: Query parameter auth fallback
+        if (!res.ok) {
           const urlWithKey = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
           res = await fetch(urlWithKey, {
             method: "POST",

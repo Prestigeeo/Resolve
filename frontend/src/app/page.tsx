@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Header } from "../components/Header";
 import { EmergencyBanner } from "../components/EmergencyBanner";
+import { DisputeHistory, StoredDisputeCase } from "../components/DisputeHistory";
 import { 
   api, 
   IntakeAnalysisResponse, 
@@ -45,7 +46,7 @@ interface ChatMessage {
 }
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<"intake" | "emergency" | "tracker" | "sources" | "guide">("intake");
+  const [activeTab, setActiveTab] = useState<"intake" | "history" | "emergency" | "tracker" | "sources" | "guide">("intake");
   const [emergencyCodes, setEmergencyCodes] = useState<Record<string, any>>({});
   const [sources, setSources] = useState<any[]>([]);
 
@@ -60,11 +61,81 @@ export default function Home() {
   const [caseAccessToken, setCaseAccessToken] = useState<string | null>(null);
   const [currentFacts, setCurrentFacts] = useState<ExtractedCaseFacts | null>(null);
   const [aiConnected, setAiConnected] = useState<boolean | null>(null);
+  const [aiErrorMsg, setAiErrorMsg] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const saveDisputeToHistory = (msgs: ChatMessage[], facts: ExtractedCaseFacts | null, doc?: GeneratedDocument) => {
+    try {
+      if (typeof window === "undefined" || msgs.length <= 1) return;
+      const stored = localStorage.getItem("resolve_dispute_history");
+      let cases: StoredDisputeCase[] = stored ? JSON.parse(stored) : [];
+
+      const caseId = activeCaseId || "case_" + Date.now();
+      const firstUser = msgs.find((m) => m.sender === "user")?.text || "Dispute Case";
+      const title = facts?.sender_institution 
+        ? `${facts.sender_institution} - ${facts.amount_ngn ? `NGN ${facts.amount_ngn.toLocaleString()}` : "Dispute"}`
+        : firstUser.length > 35 ? firstUser.slice(0, 35) + "..." : firstUser;
+
+      const updatedCase: StoredDisputeCase = {
+        id: caseId,
+        category: facts?.category || "TRANSACTION_DISPUTE",
+        title: title,
+        createdAt: new Date().toISOString(),
+        lastMessageSnippet: msgs[msgs.length - 1]?.text?.slice(0, 100) || "",
+        amount_ngn: facts?.amount_ngn,
+        bankName: facts?.sender_institution,
+        document: doc || msgs.find((m) => m.document)?.document,
+        messages: msgs,
+        facts: facts
+      };
+
+      const existingIdx = cases.findIndex((c) => c.id === caseId);
+      if (existingIdx >= 0) {
+        cases[existingIdx] = updatedCase;
+      } else {
+        cases.unshift(updatedCase);
+      }
+
+      localStorage.setItem("resolve_dispute_history", JSON.stringify(cases.slice(0, 25)));
+    } catch (e) {
+      console.warn("Could not save to history", e);
+    }
+  };
+
+  const handleResumeCase = (disputeCase: StoredDisputeCase) => {
+    setActiveCaseId(disputeCase.id);
+    if (disputeCase.messages && disputeCase.messages.length > 0) {
+      setMessages(disputeCase.messages);
+    }
+    if (disputeCase.facts) {
+      setCurrentFacts(disputeCase.facts);
+    }
+    setActiveTab("intake");
+  };
+
+  const handleStartNewChat = () => {
+    setActiveCaseId(null);
+    setCaseAccessToken(null);
+    setCurrentFacts(null);
+    const welcomeMessage: ChatMessage = {
+      id: "msg_welcome_" + Date.now(),
+      sender: "resolve",
+      text: "Hello! I am Resolve, your personal transaction dispute assistant for Nigeria.\n\nIf you experienced a failed bank transfer, missing airtime/data, an online vendor refusing delivery, or an unauthorized debit, I will help you sort it out step by step under CBN, NCC, or FCCPC rules.\n\nTell me what happened, or tap one of the common issues below to begin:",
+      timestamp: "Just now",
+      interactiveOptions: [
+        { label: "Failed Bank Transfer", value: "I was debited for a transfer and the recipient never received the money." },
+        { label: "Vendor Refused Delivery", value: "I paid an online vendor on Instagram or WhatsApp and they stopped responding." },
+        { label: "Missing Airtime / Data", value: "My bank debited me for airtime or data, but my phone was never credited." },
+        { label: "Stolen Phone / Fraud Alert", value: "My phone was stolen or I noticed an unauthorized debit on my account." }
+      ]
+    };
+    setMessages([welcomeMessage]);
+    setActiveTab("intake");
   };
 
   useEffect(() => {
@@ -173,7 +244,54 @@ export default function Home() {
         return;
       }
 
-      // 4. User asking for a formal letter
+      // 4. Direct Question Handler: Customer Refusing Receipt / Fake Alert Risk
+      if (/refused to send|refuse to send|won't send|refusing to send|no receipt|hasn't sent receipt|refused.*receipt/i.test(lower) && /receipt|proof/i.test(lower)) {
+        const receiptReply: ChatMessage = {
+          id: "msg_ai_" + Date.now(),
+          sender: "resolve",
+          text: "If a customer claims they paid you but **refuses to send an official receipt**, treat this with extreme caution:\n\n1. **High Risk of a Fake Transfer Scam**: It is common in Nigeria for scammers to send spoofed SMS alerts or generate fake banking screenshots without executing a real transfer.\n\n2. **The 30-Digit NIBSS Session ID is Mandatory**: Under Central Bank of Nigeria (CBN) rules, every genuine interbank transfer generates a unique 30-digit Session ID. If the customer genuinely paid, their bank app generated an official PDF receipt showing this number.\n\n3. **Do NOT Deliver Goods or Services**: Legally, you are under no obligation to deliver goods or acknowledge payment without confirmed credit in your bank app. A genuine customer who was debited will readily share their receipt so both banks can trace the funds.\n\n4. **What to Tell the Customer**: *\"My bank confirms no funds have entered our ledger. To trace this interbank payment with NIBSS, please provide your official PDF bank receipt showing the 30-digit Session ID.\"*\n\nWould you like me to draft an official payment verification notice for this customer?",
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          interactiveOptions: [
+            { label: "Draft Notice for Customer", value: "Please draft an official payment verification notice to send this customer." },
+            { label: "How to check with my bank", value: "How can I verify with my bank if incoming funds are pending?" },
+            { label: "How to spot fake SMS alerts", value: "How do I spot fake bank transfer alerts?" }
+          ]
+        };
+        const updatedMsgs = [...messages, userMsg, receiptReply];
+        setMessages(updatedMsgs);
+        saveDisputeToHistory(updatedMsgs, currentFacts);
+        setIsTyping(false);
+        return;
+      }
+
+      // 5. Direct Question Handler: Recipient waiting for incoming money ("someone sent me some money but im yet to receive it")
+      if (/someone sent me|customer sent|person sent|transferred to me|expecting.*money|sent me.*money/i.test(lower) && /yet to receive|not received|didn't receive|no enter|no credit/i.test(lower)) {
+        const recipientReply: ChatMessage = {
+          id: "msg_ai_" + Date.now(),
+          sender: "resolve",
+          text: "When someone transfers money to you and it has not entered your account, here is how Nigerian interbank clearing works:\n\n1. **The Sender Holds the Proof**: Because the sender's bank initiated the debit, your bank cannot locate the money without the sender's **30-digit NIBSS Session ID**.\n\n2. **Request their Official PDF Receipt**: Ask the sender to download the receipt from their bank mobile app. Look for the 30-digit Session ID (usually begins with their bank's code, like 100004... or 000014...).\n\n3. **Verify with your Bank**: Once you have the 30-digit number, your bank can immediately search their incoming NIBSS clearing ledger to confirm if the money reached them or reversed back to the sender.\n\nHas the sender provided you with their official bank receipt showing the 30-digit Session ID?",
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          interactiveOptions: [
+            { label: "Yes, I have their Session ID", value: "The sender gave me their receipt with the 30-digit Session ID." },
+            { label: "The customer refused to send receipt", value: "the customer refused to send in their receipt ..its been 7 days now" },
+            { label: "How long can an interbank transfer delay?", value: "How long is an interbank transfer allowed to delay under CBN rules?" }
+          ]
+        };
+        const updatedFacts: ExtractedCaseFacts = {
+          category: "FAILED_TRANSFER",
+          confidence: 0.95,
+          is_urgent_emergency: false,
+          summary_of_incident: text
+        };
+        setCurrentFacts(updatedFacts);
+        const updatedMsgs = [...messages, userMsg, recipientReply];
+        setMessages(updatedMsgs);
+        saveDisputeToHistory(updatedMsgs, updatedFacts);
+        setIsTyping(false);
+        return;
+      }
+
+      // 6. User asking for a formal letter
       const wantsLetter = /draft|letter|petition|official document|demand notice|complaint letter/i.test(text);
       if (wantsLetter && currentFacts) {
         const doc = await api.generateDocument(activeCaseId || undefined, caseAccessToken || undefined, currentFacts);
@@ -184,12 +302,14 @@ export default function Home() {
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
           document: doc
         };
-        setMessages((prev) => [...prev, docReply]);
+        const updatedMsgs = [...messages, userMsg, docReply];
+        setMessages(updatedMsgs);
+        saveDisputeToHistory(updatedMsgs, currentFacts, doc);
         setIsTyping(false);
         return;
       }
 
-      // 4. Try live Gemini on Vercel
+      // 7. Try live Gemini on Vercel
       try {
         const geminiRes = await fetch("/api/chat", {
           method: "POST",
@@ -221,9 +341,18 @@ export default function Home() {
                 { label: "What is my next step?", value: "What is my exact next step to resolve this?" }
               ]
             };
-            setMessages((prev) => [...prev, geminiReply]);
+            const updatedMsgs = [...messages, userMsg, geminiReply];
+            setMessages(updatedMsgs);
+            saveDisputeToHistory(updatedMsgs, currentFacts);
             setIsTyping(false);
             return;
+          }
+        } else {
+          const errData = await geminiRes.json().catch(() => ({}));
+          console.warn("[Gemini API response not ok]:", geminiRes.status, errData);
+          if (errData?.error && (geminiRes.status === 400 || geminiRes.status === 403 || geminiRes.status === 502)) {
+            setAiErrorMsg(`Gemini API: ${typeof errData.error === 'string' ? errData.error.slice(0, 100) : 'Authentication Issue'}`);
+            setAiConnected(false);
           }
         }
       } catch (err) {
@@ -859,6 +988,14 @@ export default function Home() {
           </div>
         )}
 
+        {/* View: Dispute History & Saved Letters */}
+        {activeTab === "history" && (
+          <DisputeHistory
+            onResumeCase={handleResumeCase}
+            onStartNewCase={handleStartNewChat}
+          />
+        )}
+
         {/* View: Conversational Chat Assistant (Clean, Focused, Friendly) */}
         {activeTab === "intake" && (
           <div className="flex-1 flex flex-col bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
@@ -879,7 +1016,7 @@ export default function Home() {
                   </span>
                 )}
                 {aiConnected === false && (
-                  <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-medium" title="Add GEMINI_API_KEY in Vercel to activate Gemini">
+                  <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-medium" title={aiErrorMsg || "Add GEMINI_API_KEY in Vercel to activate Gemini"}>
                     <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
                     <span>Offline Rule Mode</span>
                   </span>
@@ -891,6 +1028,13 @@ export default function Home() {
                 )}
               </div>
             </div>
+
+            {aiErrorMsg && !aiConnected && (
+              <div className="px-5 py-2 bg-amber-50/80 border-b border-amber-200 text-[11px] text-amber-800 flex items-center space-x-2">
+                <Info className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                <span>Notice: {aiErrorMsg}. Running in verified Nigerian rule mode.</span>
+              </div>
+            )}
 
             {/* Messages Thread */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
