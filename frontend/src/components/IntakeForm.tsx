@@ -120,7 +120,7 @@ export const IntakeForm: React.FC<IntakeFormProps> = ({ onSubmit, isLoading }) =
         <span className="text-slate-600"></span>
         <div className="flex items-center space-x-2 text-slate-500 shrink-0">
           <span className="w-5 h-5 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center text-[10px]">4</span>
-          <span>Official Dossier</span>
+          <span>Official Complaint Letter</span>
         </div>
       </div>
 

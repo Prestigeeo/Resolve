@@ -36,7 +36,7 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({ document }) =>
         <div>
           <div className="flex items-center space-x-2">
             <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-300 border border-blue-500/30 uppercase tracking-wider">
-              Fact-Verified Legal Dossier
+              Fact-Verified Complaint Letter
             </span>
             <span className="text-[10px] font-semibold text-slate-300 flex items-center space-x-1">
               <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />

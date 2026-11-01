@@ -1,7 +1,7 @@
 /**
  * Robust API Client with Empathetic Consumer Dispute Intelligence Engine.
- * Ensures that if the backend is waking up or unreachable, the user NEVER sees "Load failed".
- * Completely free of emojis, highly conversational, and legally grounded in Nigerian regulations.
+ * Clean, bright, conversational, and legally grounded in Nigerian regulations.
+ * Completely free of emojis and confusing jargon (no "dossier").
  */
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
@@ -173,7 +173,7 @@ export const SOURCES_DATA = [
     "title": "CBN Consumer Complaint Lodgment & Escalation Framework",
     "url": "https://www.cbn.gov.ng/FinInc/FinLit/LodgeComplaint.html",
     "category": "FAILED_TRANSFER",
-    "statutory_basis": "CBN Consumer Protection Framework (CPF)",
+    "statutory_basis": "CBN Consumer Protection Framework",
     "summary": "Mandates that commercial banks and payment providers must resolve electronic payment disputes within 14 days of lodging. Unresolved complaints can be escalated directly to cpd@cbn.gov.ng."
   },
   {
@@ -197,7 +197,7 @@ export const SOURCES_DATA = [
   {
     "id": "fccpc_fccpa_2018",
     "publisher": "Federal Competition and Consumer Protection Commission (FCCPC)",
-    "title": "Federal Competition and Consumer Protection Act 2018 (Sections 114–130)",
+    "title": "Federal Competition and Consumer Protection Act 2018 (Sections 114-130)",
     "url": "https://complaints.fccpc.gov.ng",
     "category": "MERCHANT_NON_DELIVERY",
     "statutory_basis": "FCCPA 2018 (Sections 114, 120, 127)",
@@ -292,7 +292,7 @@ export class ClientSideFallbackEngine {
       emergencyInfo = EMERGENCY_BANK_DATA["GTBANK"];
     }
 
-    // Tailored empathetic responses and follow-up discovery questions
+    // Scenario 1: Emergency Fraud
     if (isEmergency) {
       return {
         case_id: caseId,
@@ -303,69 +303,54 @@ export class ClientSideFallbackEngine {
         emergency_instructions: emergencyInfo,
         clarifying_questions: [],
         missing_critical_fields: [],
-        message: "Active security emergency detected. Dial your bank's instant USSD kill-switch code from any phone immediately to freeze your account.",
-        empathetic_intro: "Please take a deep breath. Having your phone stolen or watching unauthorized debits happen is terrifying, but acting quickly will protect what is left. First priority is locking your account right now before visiting any branch.",
-        immediate_advice: "Dial your bank's emergency USSD code immediately from ANY available phone (borrow a friend's phone or neighbour's phone). It locks mobile and card access on the spot.",
+        message: "Active emergency: Freeze your account immediately to prevent further withdrawals.",
+        empathetic_intro: "Please stay calm. Having your phone stolen or watching unauthorized debits happen is deeply frightening, but taking action right now will protect your balance. Your immediate priority is locking your account before visiting a branch.",
+        immediate_advice: "Dial your bank's emergency USSD code from any borrowed phone right now to lock mobile and card transactions.",
         action_chips: [
-          { label: "My account is now locked", value: "I have successfully dialed the code and locked my account. What is the next step?", field: "emergency_status" },
-          { label: "Phone & SIM were stolen", value: "Both my phone and the SIM linked to my bank were stolen together.", field: "emergency_status" },
-          { label: "Need 24/7 Fraud Desk Number", value: "Give me the official 24/7 fraud desk hotline for my bank.", field: "emergency_status" }
+          { label: "I have locked my account", value: "I dialed the USSD code and locked my account. What is the next step?", field: "emergency_status" },
+          { label: "My banking SIM was also stolen", value: "My SIM card was stolen with the phone.", field: "emergency_status" }
         ]
       };
     }
 
+    // Scenario 2: Failed Bank Transfer
     if (category === "FAILED_TRANSFER") {
       const hasBank = Boolean(senderBank);
       const hasAmount = Boolean(amount);
-      const hasSessionId = Boolean(sessionId);
 
-      let intro = "I completely understand how frustrating this is. Having money leave your balance without reaching the person you sent it to can be deeply stressful, especially when it is an urgent bill or payment. Rest assured, you are protected under Central Bank of Nigeria regulations, and we will get this resolved.";
-      let advice = "Important reassurance: Over 85% of failed electronic transfers in Nigeria resolve automatically within 24 to 72 hours through NIBSS interbank clearing without ever needing a legal petition. Let's make sure we have the exact details so you take the smartest step.";
+      let intro = "I'm really sorry to hear that. Having your money debited without reaching the recipient can be very stressful, especially when it is for an urgent expense. Rest assured, your funds are protected under Central Bank of Nigeria regulations.";
+      
+      let advice = "Good to know: Over 85% of failed bank transfers reverse automatically within 24 to 72 hours through daily interbank clearing. You usually do not need to write a petition or dispute letter on day one.";
 
       const questions: ClarifyingQuestion[] = [];
       const chips: Array<{ label: string; value: string; field: string }> = [];
 
       if (!hasBank || !hasAmount) {
         questions.push({
-          id: "q_transfer_context",
-          question_text: "Which bank or fintech app did you send the money from, and what was the approximate amount?",
+          id: "q_bank_and_amount",
+          question_text: "Which bank or app did you send the money from, and roughly how much was it?",
           field_target: "sender_institution",
-          help_text: "Knowing the sending bank and amount helps identify whether this was NIP or internal transfer.",
+          help_text: "Helps identify whether this was an interbank transfer or internal wallet payment.",
           input_type: "text"
         });
         chips.push(
-          { label: "GTBank transfer", value: "I sent it from GTBank.", field: "sender_institution" },
-          { label: "Access Bank transfer", value: "I sent it from Access Bank.", field: "sender_institution" },
-          { label: "OPay transfer", value: "I sent it from my OPay app.", field: "sender_institution" },
-          { label: "Zenith Bank transfer", value: "I sent it from Zenith Bank.", field: "sender_institution" }
-        );
-      } else if (!hasSessionId) {
-        questions.push({
-          id: "q_session_id",
-          question_text: "Do you have the 30-digit NIBSS Session ID from your transfer receipt?",
-          field_target: "session_id_or_ref",
-          help_text: "This 30-digit number is the master proof that receiving banks use to trace missing funds.",
-          input_type: "text"
-        });
-        chips.push(
-          { label: "I have the receipt / Session ID", value: "Yes, I have the receipt and can see the Session ID.", field: "session_id_status" },
-          { label: "Receipt only has Ref number", value: "My receipt only shows a short reference number, not 30 digits.", field: "session_id_status" },
-          { label: "Where do I find the Session ID?", value: "How do I find the 30-digit NIBSS Session ID?", field: "session_id_status" },
-          { label: "Bank has ignored me for 14+ days", value: "I already logged a ticket with my bank over 14 days ago and they have refused to refund me.", field: "timeline_status" }
+          { label: "GTBank", value: "I sent it from GTBank.", field: "sender_institution" },
+          { label: "Access Bank", value: "I sent it from Access Bank.", field: "sender_institution" },
+          { label: "OPay", value: "I sent it from my OPay app.", field: "sender_institution" },
+          { label: "Zenith Bank", value: "I sent it from Zenith Bank.", field: "sender_institution" }
         );
       } else {
         questions.push({
-          id: "q_provider_status",
-          question_text: "Have you already logged an official complaint with your bank, and when did this transfer happen?",
-          field_target: "provider_contacted",
-          help_text: "If less than 48 hours, an in-app dispute is fastest. If over 14 days, you qualify for direct CBN escalation.",
+          id: "q_timeline",
+          question_text: "Roughly when did this transfer happen?",
+          field_target: "transaction_date",
+          help_text: "CBN rules allow banks 14 days to resolve disputes before you can escalate directly to the regulator.",
           input_type: "select"
         });
         chips.push(
-          { label: "Happened today / yesterday (less than 48h)", value: "It happened within the last 48 hours.", field: "timeline_status" },
-          { label: "Logged ticket with bank 3 days ago", value: "I opened a ticket with customer support 3 days ago and no refund yet.", field: "timeline_status" },
-          { label: "Waited over 14 days without resolution", value: "It has been more than 14 days since I reported it to my bank. I want to escalate to the CBN.", field: "timeline_status" },
-          { label: "Draft official complaint letter", value: "Please draft my formal complaint letter now.", field: "action_request" }
+          { label: "Happened today or yesterday", value: "It happened within the last 48 hours.", field: "timeline_status" },
+          { label: "Over 14 days ago (no refund)", value: "It has been more than 14 days since I reported it to my bank with no refund.", field: "timeline_status" },
+          { label: "How do I find my Session ID?", value: "How do I find the 30-digit Session ID on my receipt?", field: "session_id_status" }
         );
       }
 
@@ -376,23 +361,23 @@ export class ClientSideFallbackEngine {
         facts,
         is_urgent_emergency: false,
         clarifying_questions: questions,
-        missing_critical_fields: !hasSessionId ? ["session_id_or_ref"] : [],
-        message: "Analyzing your failed transfer under Central Bank of Nigeria dispute guidelines.",
+        missing_critical_fields: !hasBank ? ["sender_institution"] : [],
+        message: "Reviewing your failed transfer under Central Bank of Nigeria guidelines.",
         empathetic_intro: intro,
         immediate_advice: advice,
         action_chips: chips
       };
     }
 
+    // Scenario 3: Online Vendor Non-Delivery
     if (category === "MERCHANT_NON_DELIVERY") {
-      let intro = "I am really sorry to hear that. Being ghosted or blocked by an online vendor after paying hard-earned money is exasperating. Unfortunately, social media vendor disputes happen every day in Nigeria, but the law—specifically the Federal Competition and Consumer Protection Act (FCCPA) 2018—strictly protects your right to full restitution.";
-      let advice = "Depending on how you paid, you might not even need to wait for a court or formal commission hearing. Online checkout links (like Paystack or Flutterwave) have built-in chargeback tools that freeze merchant accounts immediately.";
+      let intro = "I'm really sorry that happened. Paying an online vendor on Instagram or WhatsApp only to be ghosted or blocked is so frustrating. Fortunately, Nigerian consumer protection law (FCCPA 2018) is strictly on your side.";
+      let advice = "Depending on how you paid, you might be able to recover your money very quickly. If you paid via a card or online checkout (like Paystack or Flutterwave), you can dispute the charge directly to freeze their payout.";
 
       const chips: Array<{ label: string; value: string; field: string }> = [
-        { label: "Paid via Direct Bank Transfer", value: "I paid via a direct bank transfer to the seller's account.", field: "payment_method" },
-        { label: "Paid via Card / Online Checkout (Paystack/Flutterwave)", value: "I paid using my debit card through an online checkout link (Paystack/Flutterwave).", field: "payment_method" },
-        { label: "Vendor blocked me on WhatsApp/IG", value: "The vendor blocked my phone number and Instagram account after receiving money.", field: "vendor_behavior" },
-        { label: "Draft 7-Day Statutory Refund Demand", value: "Please draft the formal 7-Day Statutory Demand Notice under FCCPA 2018.", field: "action_request" }
+        { label: "Direct bank transfer to their account", value: "I paid via a direct bank transfer to the seller's account.", field: "payment_method" },
+        { label: "Debit card or online link (Paystack/Flutterwave)", value: "I paid using an online checkout link (Paystack or Flutterwave).", field: "payment_method" },
+        { label: "The seller blocked my line", value: "The seller blocked my phone number and WhatsApp after receiving payment.", field: "vendor_behavior" }
       ];
 
       return {
@@ -403,30 +388,29 @@ export class ClientSideFallbackEngine {
         is_urgent_emergency: false,
         clarifying_questions: [
           {
-            id: "q_merchant_payment_method",
-            question_text: "How did you send the payment to the vendor: direct bank transfer or an online card checkout link?",
+            id: "q_payment_method",
+            question_text: "How did you send the payment: direct bank transfer or an online checkout link?",
             field_target: "payment_method",
-            help_text: "Card and checkout payments allow instant payment gateway chargebacks, whereas direct bank transfers follow the FCCPA 7-day cure notice.",
+            help_text: "Card and checkout links allow immediate chargeback holds, while transfers follow the 7-day demand notice.",
             input_type: "select"
           }
         ],
         missing_critical_fields: ["payment_method"],
-        message: "Evaluating merchant non-delivery under FCCPA 2018 regulations.",
+        message: "Reviewing merchant dispute under FCCPA 2018 rules.",
         empathetic_intro: intro,
         immediate_advice: advice,
         action_chips: chips
       };
     }
 
+    // Scenario 4: Undelivered Airtime / Data
     if (category === "UNDELIVERED_AIRTIME_DATA") {
-      let intro = "I know how annoying that is—especially when you urgently need data or airtime for work or study, you watch the debit alert enter your phone, but no value is credited.";
-      let advice = "Here is an important inside tip: If you bought this through your bank app, calling your telecom provider (MTN, Airtel, Glo, 9mobile) usually leads to frustration because their system will show no record of the transaction. In 90% of cases, the error occurred between your bank and the VTU payment aggregator. Let's trace it properly.";
+      let intro = "I know how annoying that is—especially when you urgently need airtime or data, the bank debits you immediately, but nothing arrives on your phone.";
+      let advice = "Helpful tip: If you bought this through your bank app, calling the network provider (MTN, Airtel, Glo, 9mobile) often leads to a dead end because their backend will show no record. In most cases, the issue is between your bank and the VTU aggregator.";
 
       const chips: Array<{ label: string; value: string; field: string }> = [
-        { label: "Bought via Bank Mobile App", value: "I bought it through my bank mobile app.", field: "vtu_channel" },
-        { label: "Bought directly via SIM USSD / Telco App", value: "I bought it directly from the telecom network.", field: "vtu_channel" },
-        { label: "MTN Network", value: "The network is MTN.", field: "telco_provider" },
-        { label: "Airtel Network", value: "The network is Airtel.", field: "telco_provider" }
+        { label: "Bought from my bank mobile app", value: "I bought it through my bank mobile app.", field: "vtu_channel" },
+        { label: "Bought directly via phone SIM code", value: "I bought it directly from the telecom network.", field: "vtu_channel" }
       ];
 
       return {
@@ -437,22 +421,22 @@ export class ClientSideFallbackEngine {
         is_urgent_emergency: false,
         clarifying_questions: [
           {
-            id: "q_vtu_source",
-            question_text: "Did you purchase this airtime/data through your bank app, or directly with the telecom provider?",
+            id: "q_vtu_channel",
+            question_text: "Did you buy this from your bank app, or directly using your phone's SIM menu?",
             field_target: "purchased_via_bank_vtu",
-            help_text: "Bank VTU purchases must be reversed by the bank, while direct recharges are covered under NCC 622.",
+            help_text: "Bank VTU purchases must be reversed by the bank, while direct recharges are covered by NCC 622.",
             input_type: "select"
           }
         ],
         missing_critical_fields: ["purchased_via_bank_vtu"],
-        message: "Reviewing undelivered airtime/data under NCC Article 126 directives.",
+        message: "Reviewing airtime/data dispute under NCC guidelines.",
         empathetic_intro: intro,
         immediate_advice: advice,
         action_chips: chips
       };
     }
 
-    // Default general dispute
+    // Default General
     return {
       case_id: caseId,
       case_access_token: token,
@@ -461,9 +445,9 @@ export class ClientSideFallbackEngine {
       is_urgent_emergency: false,
       clarifying_questions: [],
       missing_critical_fields: [],
-      message: "Case facts recorded. We will guide you through the appropriate statutory redress channel.",
+      message: "Ready to guide you through resolving your transaction dispute.",
       empathetic_intro: "I am here to help you get this resolved. Nigerian financial and consumer protection laws provide concrete safeguards when transactions go wrong.",
-      immediate_advice: "Tell me a bit more about what occurred, or select one of the common dispute channels below.",
+      immediate_advice: "Tell me what happened in your own words, or choose one of the common situations below.",
       action_chips: [
         { label: "Failed Bank Transfer", value: "I transferred money via my bank and recipient was not credited.", field: "category" },
         { label: "Online Vendor Refused Delivery", value: "I paid a vendor on Instagram or WhatsApp and they refused to deliver.", field: "category" },
@@ -499,31 +483,31 @@ export class ClientSideFallbackEngine {
       return {
         stage_name: isCard ? "GATEWAY_CHARGEBACK" : "FCCPC_COMMERCIAL_REDRESS",
         summary: isCard 
-          ? "Debit Card / Online Checkout dispute. You are entitled to an immediate payment gateway chargeback."
-          : "Commercial non-delivery dispute. Proceeding under the Federal Competition and Consumer Protection Act (FCCPA) 2018.",
+          ? "Debit card or online checkout dispute: You are entitled to an immediate payment gateway chargeback."
+          : "Commercial non-delivery dispute under the Federal Competition and Consumer Protection Act (FCCPA) 2018.",
         action_steps: [
           {
             step_number: 1,
-            title: isCard ? "Lodge Payment Gateway Dispute" : "Deliver 7-Day Statutory Notice of Breach & Refund Demand",
+            title: isCard ? "Lodge Payment Gateway Dispute" : "Send 7-Day Refund Demand Notice",
             description: isCard 
               ? "Look up your transaction reference on paystack.com/lookup or flutterwave.com/dispute to freeze merchant settlement."
-              : `Deliver the formal notice to ${facts.merchant_name_or_handle || "the vendor"} giving 7 days to fulfill or refund in full.`,
+              : `Send a formal notice to ${facts.merchant_name_or_handle || "the vendor"} giving 7 days to deliver or refund in full.`,
             channel_to_use: isCard ? "Gateway Dispute Portal" : "WhatsApp / Email / SMS",
-            deadline_or_sla: "7-Day Statutory Cure Period"
+            deadline_or_sla: "7-Day Statutory Window"
           },
           {
             step_number: 2,
-            title: isCard ? "File Card Chargeback with Bank" : "Notify Bank Disputed Commercial Transaction Desk",
-            description: `Submit the formal notice to ${facts.sender_institution || "your bank"} citing reference ${facts.session_id_or_ref || "on receipt"} to place an interbank fraud flag.`,
+            title: isCard ? "File Card Chargeback with Bank" : "Notify Bank Commercial Dispute Desk",
+            description: `Submit proof to ${facts.sender_institution || "your bank"} citing your receipt reference to flag the recipient account.`,
             channel_to_use: "Bank Customer Care / Dispute Desk",
             deadline_or_sla: "Immediate"
           },
           {
             step_number: 3,
-            title: "File Formal Dossier with FCCPC",
-            description: "Submit your docket on the official FCCPC portal (complaints.fccpc.gov.ng) with order chat screenshots and proof of non-delivery.",
+            title: "File Formal Complaint with FCCPC",
+            description: "Submit your complaint on the official FCCPC portal (complaints.fccpc.gov.ng) with order chat screenshots and proof of payment.",
             channel_to_use: "FCCPC Complaint Portal (complaints.fccpc.gov.ng)",
-            deadline_or_sla: "Upon expiration of 7-day cure notice"
+            deadline_or_sla: "After 7-day notice expires"
           }
         ],
         evidence_checklist: [
@@ -535,14 +519,14 @@ export class ClientSideFallbackEngine {
           { publisher: "FCCPC", title: "FCCPA 2018 (Sections 114-130)", url: "https://complaints.fccpc.gov.ng", statutory_rule: "Right to timely delivery of paid goods & mandatory full refund for breach." }
         ],
         can_generate_document: true,
-        document_type_recommended: isCard ? "CARD_CHARGEBACK_DISPUTE_LETTER" : "FCCPC_COMPLAINT_DOSSIER"
+        document_type_recommended: isCard ? "CARD_CHARGEBACK_DISPUTE_LETTER" : "FCCPC_COMPLAINT_LETTER"
       };
     }
 
     // Default Failed Bank Transfer
     return {
       stage_name: "STAGE_1_PROVIDER_COMPLAINT",
-      summary: `Lodge formal dispute with ${facts.sender_institution || "your bank"} citing your 30-digit NIBSS Session ID to initiate NIP reconciliation.`,
+      summary: `Lodge formal dispute with ${facts.sender_institution || "your bank"} citing your 30-digit NIBSS Session ID to initiate reconciliation.`,
       action_steps: [
         {
           step_number: 1,
@@ -553,9 +537,9 @@ export class ClientSideFallbackEngine {
         },
         {
           step_number: 2,
-          title: "Track 14-Day Mandatory Resolution SLA",
-          description: "Record your Ticket Number in Resolve. Under CBN rules, if unreversed after 14 days, you unlock direct escalation to CBN Consumer Protection Department (cpd@cbn.gov.ng).",
-          channel_to_use: "Resolve Case Tracker",
+          title: "Track 14-Day Mandatory Resolution Window",
+          description: "Under CBN rules, if unreversed after 14 days, you can escalate directly to CBN Consumer Protection Department (cpd@cbn.gov.ng).",
+          channel_to_use: "CBN Consumer Protection Escalation",
           deadline_or_sla: "14-Day Statutory CBN Window"
         }
       ],
@@ -589,16 +573,16 @@ export class ClientSideFallbackEngine {
 
     if (facts.category === "MERCHANT_NON_DELIVERY") {
       return {
-        document_type: "FCCPC_COMPLAINT_DOSSIER",
-        title: "FCCPC Formal Notice of Non-Delivery & Statutory 7-Day Demand for Refund",
+        document_type: "FCCPC_COMPLAINT_LETTER",
+        title: "Formal Notice of Non-Delivery & 7-Day Refund Demand",
         recipient_institution: facts.merchant_name_or_handle || "The Merchant / Online Business",
         recipient_contact_info: "Vendor Channel & Copy to FCCPC Complaints Directorate (complaints.fccpc.gov.ng)",
-        subject_line: `FORMAL NOTICE OF NON-DELIVERY & STATUTORY REFUND DEMAND — ${amt}`,
-        body_text: `Date: ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}\n\nTo: ${facts.merchant_name_or_handle || "The Merchant / Business Entity"}\nCopy: Federal Competition and Consumer Protection Commission (FCCPC)\n\nFORMAL NOTICE OF BREACH OF CONTRACT & DEMAND FOR FULL REFUND\n\nDear Sir/Madam,\n\nThis constitutes formal legal notice that on ${facts.transaction_date || "the transaction date"}, I paid the sum of ${amt} (Transaction Ref: ${sess}) as full consideration for the agreed goods/services.\n\nSTATEMENT OF VERIFIED FACTS:\n1. Payment of ${amt} was successfully transferred and confirmed.\n2. Delivery was promised on or before ${facts.agreed_delivery_date || "the agreed timeline"}.\n3. As of today, the agreed items/services have NOT been delivered, and no refund has been provided.\n4. Current status: ${facts.vendor_response_state || "Merchant has failed to fulfill order or provide satisfactory redress"}.\n\nSTATUTORY DEMAND:\nUnder Section 114 of the Federal Competition and Consumer Protection Act (FCCPA) 2018, consumers are entitled to timely performance and delivery of paid goods, and an immediate full refund upon default.\n\nYou are hereby given SEVEN (7) DAYS from the receipt of this notice to either deliver the agreed items in sound condition or refund the full sum of ${amt}.\n\nFailure to comply will result in the immediate filing of this dossier with the FCCPC Enforcement Directorate for deceptive trade practices and recovery of funds.`,
+        subject_line: `FORMAL NOTICE OF NON-DELIVERY & REFUND DEMAND — ${amt}`,
+        body_text: `Date: ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}\n\nTo: ${facts.merchant_name_or_handle || "The Merchant / Business Entity"}\nCopy: Federal Competition and Consumer Protection Commission (FCCPC)\n\nFORMAL NOTICE OF BREACH OF CONTRACT & DEMAND FOR FULL REFUND\n\nDear Sir/Madam,\n\nThis constitutes formal notice that on ${facts.transaction_date || "the transaction date"}, I paid the sum of ${amt} (Transaction Ref: ${sess}) as full payment for agreed goods/services.\n\nSTATEMENT OF FACTS:\n1. Payment of ${amt} was transferred and confirmed.\n2. Delivery was promised on or before ${facts.agreed_delivery_date || "the agreed timeline"}.\n3. As of today, the agreed items/services have NOT been delivered, and no refund has been provided.\n4. Current status: ${facts.vendor_response_state || "Merchant has failed to deliver or issue a refund"}.\n\nSTATUTORY DEMAND:\nUnder Section 114 of the Federal Competition and Consumer Protection Act (FCCPA) 2018, consumers are entitled to timely delivery of paid goods, and an immediate full refund upon default.\n\nYou are hereby given SEVEN (7) DAYS from the receipt of this notice to either deliver the agreed items or refund the full sum of ${amt}.\n\nFailure to comply will result in filing this complaint directly with the FCCPC Enforcement Directorate for deceptive trade practices.`,
         formal_evidence_list: [
           "Bank transfer debit alert / transaction receipt",
           "Chat transcript showing item specification and agreed delivery date",
-          "Proof of non-delivery and unanswered follow-up inquiries"
+          "Proof of non-delivery and unanswered follow-up messages"
         ],
         statutory_notice_clause: "Issued pursuant to Sections 114, 120, and 127 of the Federal Competition and Consumer Protection Act 2018.",
         suggested_submission_methods: [
@@ -611,11 +595,11 @@ export class ClientSideFallbackEngine {
 
     return {
       document_type: "STAGE_1_BANK_DISPUTE",
-      title: "Stage-1 Bank Electronic Transfer Dispute Notice",
+      title: "Bank Electronic Transfer Dispute Letter",
       recipient_institution: bank,
       recipient_contact_info: `${bank} Customer Dispute Desk & Helpdesk`,
       subject_line: `FORMAL DISPUTE: FAILED ELECTRONIC FUNDS TRANSFER — ${amt} (Session ID: ${sess})`,
-      body_text: `Date: ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}\n\nTo: Customer Care & Dispute Resolution Department\nInstitution: ${bank}\n\nDear Sir/Madam,\n\nRE: NOTICE OF FAILED TRANSFER DEBIT WITHOUT BENEFICIARY CREDIT\n\nI am writing to formally lodge an electronic transaction dispute regarding a funds transfer initiated from my account in the sum of ${amt}. My account was debited, but the recipient institution has confirmed non-receipt of value.\n\nTRANSACTION DETAILS:\n- Amount Debited: ${amt}\n- 30-Digit NIBSS Session ID: ${sess}\n- Financial Institution: ${bank}\n- Transaction Date: ${facts.transaction_date || "Recent"}\n\nIn accordance with Central Bank of Nigeria (CBN) Electronic Payment regulations, I request the immediate trace and interbank reconciliation of this transaction, and the return of debited funds if credit failure is confirmed.\n\nKindly provide an official Complaint Ticket ID for tracking.`,
+      body_text: `Date: ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}\n\nTo: Customer Care & Dispute Resolution Department\nInstitution: ${bank}\n\nDear Sir/Madam,\n\nRE: NOTICE OF FAILED TRANSFER DEBIT WITHOUT BENEFICIARY CREDIT\n\nI am writing to formally lodge an electronic transaction dispute regarding a transfer initiated from my account in the sum of ${amt}. My account was debited, but the recipient institution has confirmed non-receipt of value.\n\nTRANSACTION DETAILS:\n- Amount Debited: ${amt}\n- 30-Digit NIBSS Session ID: ${sess}\n- Financial Institution: ${bank}\n- Transaction Date: ${facts.transaction_date || "Recent"}\n\nIn accordance with Central Bank of Nigeria (CBN) Electronic Payment regulations, I request the immediate trace and interbank reconciliation of this transaction, and the return of debited funds if credit failure is confirmed.\n\nKindly provide an official Complaint Ticket ID for tracking.`,
       formal_evidence_list: [
         "Official debit alert / account statement snippet",
         "Transaction receipt showing 30-digit NIBSS Session ID",
@@ -641,7 +625,6 @@ export const api = {
       });
       if (res.ok) {
         const data = await res.json();
-        // Blend in warm empathetic messaging and action chips
         const fallback = ClientSideFallbackEngine.analyze(rawText, preselectedCategory);
         data.empathetic_intro = fallback.empathetic_intro;
         data.immediate_advice = fallback.immediate_advice;
@@ -665,7 +648,6 @@ export const api = {
     } catch {
       // Fallback
     }
-    // Update local case
     const details = ClientSideFallbackEngine.getDetails(caseId);
     Object.assign(details.facts, answers);
     if (answers.amount_ngn) details.facts.amount_ngn = parseFloat(answers.amount_ngn);
@@ -682,7 +664,7 @@ export const api = {
       is_urgent_emergency: details.facts.is_urgent_emergency,
       clarifying_questions: [],
       missing_critical_fields: [],
-      message: "Case facts recorded. Ready to provide your statutory guidance and formal redress document whenever you need it."
+      message: "Details recorded. We can guide you on the next step or draft your complaint letter whenever you need it."
     };
   },
 

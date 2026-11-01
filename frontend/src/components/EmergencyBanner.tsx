@@ -1,5 +1,7 @@
+"use client";
+
 import React, { useState } from "react";
-import { ShieldAlert, Phone, Lock, ChevronRight, AlertOctagon } from "lucide-react";
+import { ShieldAlert, Phone, Lock, ChevronRight } from "lucide-react";
 
 interface EmergencyBannerProps {
   detectedBankInfo?: {
@@ -18,23 +20,20 @@ export const EmergencyBanner: React.FC<EmergencyBannerProps> = ({ detectedBankIn
   const activeBank = detectedBankInfo || emergencyCodes[selectedBank] || emergencyCodes["GTBANK"];
 
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-rose-500/30 bg-gradient-to-br from-rose-950/40 via-slate-900/90 to-slate-950 p-5 sm:p-6 shadow-xl mb-6 backdrop-blur-xl">
-      {/* Background ambient glow */}
-      <div className="absolute -top-12 -right-12 w-48 h-48 bg-rose-600/10 rounded-full blur-3xl pointer-events-none" />
-
+    <div className="rounded-2xl border border-rose-200 bg-rose-50/50 p-6 shadow-sm mb-6">
       <div className="flex items-start space-x-4">
-        <div className="p-3 bg-gradient-to-br from-rose-500 to-rose-700 rounded-2xl text-white shadow-lg shadow-rose-600/30 shrink-0 border border-rose-400/30">
-          <ShieldAlert className="w-6 h-6 animate-pulse" />
+        <div className="p-3 bg-rose-600 rounded-xl text-white shadow-md shadow-rose-600/20 shrink-0">
+          <ShieldAlert className="w-6 h-6" />
         </div>
         <div className="flex-1">
-          <div className="flex items-center space-x-2">
-            <h2 className="text-base font-bold text-white tracking-tight">Active Emergency Account Lock & Fraud Freeze</h2>
-            <span className="text-[10px] bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
-              24/7 Direct Kill-Switches
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-base font-bold text-slate-900 tracking-tight">Emergency Bank Account Freeze Codes</h2>
+            <span className="text-[10px] bg-rose-100 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+              24/7 Kill-Switches
             </span>
           </div>
-          <p className="text-xs text-rose-200/80 mt-1 leading-relaxed">
-            If your phone was snatched, SIM compromised, or funds are actively being withdrawn, dial your bank's emergency USSD code from <strong>ANY</strong> phone immediately to freeze your account before visiting a branch.
+          <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+            If your phone was stolen or unauthorized debits are occurring, dial your bank's USSD freeze code from <strong>ANY</strong> phone immediately to lock your accounts before visiting a branch.
           </p>
 
           {/* Bank Selector Chips */}
@@ -47,10 +46,10 @@ export const EmergencyBanner: React.FC<EmergencyBannerProps> = ({ detectedBankIn
                   key={key}
                   type="button"
                   onClick={() => setSelectedBank(key)}
-                  className={`px-3 py-1.5 text-xs rounded-xl font-medium transition-all ${
+                  className={`px-3 py-1.5 text-xs rounded-lg font-medium transition-all ${
                     isSelected
-                      ? "bg-rose-600 text-white shadow-md shadow-rose-600/30 border border-rose-400/40 font-bold"
-                      : "bg-slate-800/80 text-slate-300 hover:bg-slate-700 border border-white/5"
+                      ? "bg-rose-600 text-white shadow-sm font-bold"
+                      : "bg-white text-slate-700 hover:bg-slate-100 border border-slate-200"
                   }`}
                 >
                   {b.name.split(" ")[0]}
@@ -61,20 +60,14 @@ export const EmergencyBanner: React.FC<EmergencyBannerProps> = ({ detectedBankIn
 
           {/* Action card for selected bank */}
           {activeBank && (
-            <div className="mt-4 bg-slate-900/80 border border-rose-500/20 rounded-2xl p-4 shadow-inner">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div>
-                  <h3 className="text-sm font-bold text-white flex items-center space-x-1.5">
-                    <span>{activeBank.name}</span>
-                  </h3>
-                  <p className="text-xs text-slate-300 mt-0.5">{activeBank.action_prompt}</p>
-                </div>
-              </div>
+            <div className="mt-4 bg-white border border-rose-200/80 rounded-xl p-4 shadow-sm">
+              <h3 className="text-sm font-bold text-slate-900">{activeBank.name}</h3>
+              <p className="text-xs text-slate-600 mt-0.5">{activeBank.action_prompt}</p>
 
               <div className="mt-3.5 flex flex-wrap gap-2.5 items-center">
                 <a
                   href={`tel:${encodeURIComponent(activeBank.ussd_freeze_code)}`}
-                  className="inline-flex items-center space-x-2 bg-gradient-to-r from-rose-600 to-rose-700 hover:from-rose-500 hover:to-rose-600 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-md shadow-rose-600/30 border border-rose-400/30"
+                  className="inline-flex items-center space-x-2 bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-sm"
                 >
                   <Lock className="w-3.5 h-3.5" />
                   <span>Dial USSD Freeze: {activeBank.ussd_freeze_code}</span>
@@ -83,10 +76,10 @@ export const EmergencyBanner: React.FC<EmergencyBannerProps> = ({ detectedBankIn
                 {activeBank.fraud_desk_phone && (
                   <a
                     href={`tel:${activeBank.fraud_desk_phone.split("/")[0].trim()}`}
-                    className="inline-flex items-center space-x-2 bg-slate-800 hover:bg-slate-700 text-slate-200 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all border border-white/10"
+                    className="inline-flex items-center space-x-2 bg-slate-100 hover:bg-slate-200 text-slate-800 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all border border-slate-200"
                   >
-                    <Phone className="w-3.5 h-3.5 text-rose-400" />
-                    <span>24/7 Fraud Hotline: {activeBank.fraud_desk_phone.split("/")[0].trim()}</span>
+                    <Phone className="w-3.5 h-3.5 text-slate-600" />
+                    <span>24/7 Hotline: {activeBank.fraud_desk_phone.split("/")[0].trim()}</span>
                   </a>
                 )}
               </div>
