@@ -21,14 +21,15 @@ export async function POST(req: Request) {
   try {
     const { messages, currentFacts } = await req.json();
 
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
+    const rawApiKey = process.env.GEMINI_API_KEY;
+    if (!rawApiKey) {
       console.warn("[Resolve /api/chat] GEMINI_API_KEY is not configured.");
       return NextResponse.json(
         { error: "GEMINI_API_KEY is not configured on Vercel." },
         { status: 503 }
       );
     }
+    const apiKey = rawApiKey.trim();
 
     // Build contents strictly compliant with Gemini API specifications:
     // 1. Must start with role "user"
@@ -78,7 +79,10 @@ export async function POST(req: Request) {
 
     let geminiRes = await fetch(geminiUrl, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey
+      },
       body: JSON.stringify({
         system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
         contents,
@@ -94,7 +98,10 @@ export async function POST(req: Request) {
       const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
       geminiRes = await fetch(fallbackUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey
+        },
         body: JSON.stringify({
           system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
           contents,
