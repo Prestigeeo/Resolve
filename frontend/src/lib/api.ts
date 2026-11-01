@@ -228,19 +228,25 @@ export class ClientSideFallbackEngine {
       category = "STOLEN_FUNDS_FRAUD";
     } else if (/airtime|data|megabytes|gigabytes|recharge|vtu/.test(textLower)) {
       category = "UNDELIVERED_AIRTIME_DATA";
-    } else if (/vendor|merchant|boutique|ordered|bought|instagram|whatsapp|refused to deliver|dress|shoes|bag|hair|blocked me/.test(textLower)) {
-      category = "MERCHANT_NON_DELIVERY";
-    } else if (/transfer|transferred|sent money|debited|debit|nip|session id|no enter|no credit|didn't receive/.test(textLower)) {
+    } else if (/yet to get|yet to receive|hasn't received|has not received|no receive|no enter|did not drop|didn't drop|no credit|not credited|uncredited/.test(textLower)) {
+      // Payment initiated but recipient has not received the funds = Failed Bank Transfer
       category = "FAILED_TRANSFER";
+    } else if (/refused to deliver|blocked me|ghosted|fake tracking|scam vendor|never delivered|stopped replying/.test(textLower)) {
+      category = "MERCHANT_NON_DELIVERY";
+    } else if (/transfer|transferred|sent money|debited|debit|nip|session id|didn't receive/.test(textLower)) {
+      category = "FAILED_TRANSFER";
+    } else if (/vendor|merchant|boutique|ordered|bought|instagram|whatsapp|dress|shoes|bag|hair/.test(textLower)) {
+      category = "MERCHANT_NON_DELIVERY";
     }
 
-    // Extract amount
+    // Extract amount (excluding numbers followed by days/hours)
     let amount: number | undefined;
-    const amtMatch = textLower.match(/(?:₦|ngn|naira|#)?\s*([0-9]{1,3}(?:,[0-9]{3})*|[0-9]+)\s*(?:naira|k|thousand)?/);
+    const amtMatch = textLower.match(/(?:₦|ngn|naira|#)\s*([0-9]{1,3}(?:,[0-9]{3})*|[0-9]+)|([0-9]{1,3}(?:,[0-9]{3})*|[0-9]+)\s*(?:naira|k|thousand)(?!\s*days?)/);
     if (amtMatch) {
-      let val = parseFloat(amtMatch[1].replace(/,/g, ""));
+      const rawNum = amtMatch[1] || amtMatch[2];
+      let val = parseFloat(rawNum.replace(/,/g, ""));
       if ((textLower.includes("k") || textLower.includes("thousand")) && val < 1000) val *= 1000;
-      if (val > 0) amount = val;
+      if (val >= 100) amount = val;
     }
 
     // Extract session ID
@@ -250,9 +256,14 @@ export class ClientSideFallbackEngine {
 
     // Detect sender bank
     let senderBank: string | undefined;
-    for (const b of ["GTBank", "Access Bank", "Zenith Bank", "UBA", "FirstBank", "OPay", "Moniepoint", "Kuda", "PalmPay", "Fidelity", "FCMB", "Stanbic", "Sterling", "Wema"]) {
+    const allBanks = [
+      "GTBank", "Access Bank", "Zenith Bank", "UBA", "FirstBank", "OPay", "Moniepoint", 
+      "Providus Bank", "Providus", "Kuda", "PalmPay", "Fidelity", "FCMB", "Stanbic", 
+      "Sterling", "Wema", "Union Bank", "Keystone", "Jaiz", "TajBank"
+    ];
+    for (const b of allBanks) {
       if (textLower.includes(b.toLowerCase())) {
-        senderBank = b;
+        senderBank = b.includes("Providus") ? "Providus Bank" : b;
         break;
       }
     }

@@ -1,17 +1,19 @@
 import { NextResponse } from "next/server";
 
 const SYSTEM_PROMPT = `You are Resolve, an empathetic, highly knowledgeable consumer transaction dispute advocate in Nigeria.
-Your role is to help Nigerian consumers resolve:
-1. Failed Bank Transfers (NIP debit without credit, 30-digit NIBSS Session ID, CBN 14-day mandatory SLA before cpd@cbn.gov.ng escalation).
-2. Undelivered Airtime/Data (Bank VTU aggregator failures vs. telecom SIM recharge, NCC Toll-Free 622).
-3. Online Vendor Non-Delivery (Instagram/WhatsApp vendors ghosting or blocking buyers, FCCPA 2018 7-day refund demand notice, complaints.fccpc.gov.ng).
-4. Stolen Phones / Unauthorized Fraud (Immediate bank USSD kill-switches, SIM hotlisting, 24/7 bank fraud desk lien).
+Your role is to help Nigerian consumers understand, document, and resolve transaction issues under verified regulations:
+1. Failed Bank Transfers (CBN 14-Day Mandatory SLA, 30-digit NIBSS Session ID tracing, CBN CPD escalation).
+   Note: If a user transferred money to someone or a vendor, and the recipient has NOT received the money, this is a FAILED BANK TRANSFER debit-without-credit issue, NOT a merchant refusal.
+2. Undelivered Airtime/Data (Bank VTU aggregator issue vs. telecom recharge, NCC Toll-Free 622).
+3. Online Vendor Non-Delivery (Instagram/WhatsApp vendors who received payment but ghosted, blocked the buyer, or refused delivery, FCCPA 2018 7-day refund demand notice, complaints.fccpc.gov.ng).
+4. Stolen Phones & Compromised Accounts (Immediate bank USSD freeze codes, SIM blocking, bank fraud desk lien).
 
 COMMUNICATION GUIDELINES:
 - Warm, empathetic, human, and reassuring. Speak like a knowledgeable Nigerian legal/fintech expert friend.
-- If the user asks a question (e.g. "what does SLA mean?", "where is my session ID?", "what is NIP?"), answer the question clearly, concisely, and accurately in Nigerian context.
+- Understand Nigerian context, banks (GTBank, Access, Zenith, OPay, Moniepoint, Providus, Kuda, FirstBank, UBA, etc.), and terms like Session ID, SLA, NIP, VTU.
+- If the user asks a question (e.g. "what does SLA mean?", "where is my session ID?"), answer it directly, clearly, and concisely.
 - Never invent bank names, amounts, or reference numbers that the user did not provide.
-- Keep your answers clean, well-spaced, and easy to read on mobile.
+- Keep answers clean, well-spaced, and easy to read on mobile (short paragraphs).
 - Strictly DO NOT use any emojis anywhere in your response.
 - Do NOT use obscure jargon like "dossier" — use "Official Complaint Letter" or "Dispute Letter".`;
 
@@ -21,46 +23,64 @@ export async function POST(req: Request) {
 
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
+      console.warn("[Resolve /api/chat] GEMINI_API_KEY is not configured.");
       return NextResponse.json(
         { error: "GEMINI_API_KEY is not configured on Vercel." },
         { status: 503 }
       );
     }
 
-    // Format chat history for Gemini
-    const contents = [];
+    // Build contents strictly compliant with Gemini API specifications:
+    // 1. Must start with role "user"
+    // 2. Roles must strictly alternate between "user" and "model"
+    // 3. No consecutive same-role turns
+    const contents: Array<{ role: "user" | "model"; parts: Array<{ text: string }> }> = [];
 
-    // Context preamble if facts are known
+    // Filter out initial welcome message if it was sent by resolve
+    const chatTurns = (messages || []).filter((m: any, idx: number) => !(idx === 0 && m.sender === "resolve"));
+
     let contextNote = "";
     if (currentFacts && currentFacts.category && currentFacts.category !== "AMBIGUOUS") {
-      contextNote = `[Active Case Context: Category=${currentFacts.category}, Bank=${currentFacts.sender_institution || "Unknown"}, Amount=${currentFacts.amount_ngn || "Unknown"}, SessionID=${currentFacts.session_id_or_ref || "Unknown"}]\n\n`;
+      contextNote = `[Dispute Context: Category=${currentFacts.category}, Bank=${currentFacts.sender_institution || "Unknown"}, Amount=${currentFacts.amount_ngn || "Unknown"}]\n\n`;
     }
 
-    for (let i = 0; i < messages.length; i++) {
-      const msg = messages[i];
+    for (let i = 0; i < chatTurns.length; i++) {
+      const msg = chatTurns[i];
       const role = msg.sender === "user" ? "user" : "model";
-      let textContent = msg.text || "";
+      let textContent = (msg.text || "").trim();
+      if (!textContent) continue;
 
-      if (i === messages.length - 1 && role === "user" && contextNote) {
+      if (i === chatTurns.length - 1 && role === "user" && contextNote) {
         textContent = contextNote + textContent;
       }
 
-      contents.push({
-        role,
-        parts: [{ text: textContent }]
-      });
+      if (contents.length > 0 && contents[contents.length - 1].role === role) {
+        contents[contents.length - 1].parts[0].text += `\n\n${textContent}`;
+      } else {
+        contents.push({
+          role,
+          parts: [{ text: textContent }]
+        });
+      }
     }
 
-    // Call Google Gemini REST API (gemini-2.5-flash / gemini-1.5-flash)
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    // Must start with user
+    while (contents.length > 0 && contents[0].role !== "user") {
+      contents.shift();
+    }
 
-    const geminiRes = await fetch(geminiUrl, {
+    if (contents.length === 0) {
+      return NextResponse.json({ error: "No user message found" }, { status: 400 });
+    }
+
+    // Primary: gemini-1.5-flash (Universal support across all Gemini API keys)
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+    let geminiRes = await fetch(geminiUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        system_instruction: {
-          parts: [{ text: SYSTEM_PROMPT }]
-        },
+        system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
         contents,
         generationConfig: {
           temperature: 0.3,
@@ -70,9 +90,9 @@ export async function POST(req: Request) {
     });
 
     if (!geminiRes.ok) {
-      // Try fallback to gemini-1.5-flash
-      const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-      const fallbackRes = await fetch(fallbackUrl, {
+      // Secondary fallback: gemini-2.5-flash
+      const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+      geminiRes = await fetch(fallbackUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -82,14 +102,11 @@ export async function POST(req: Request) {
         })
       });
 
-      if (!fallbackRes.ok) {
-        const errText = await fallbackRes.text();
-        return NextResponse.json({ error: errText }, { status: 500 });
+      if (!geminiRes.ok) {
+        const errText = await geminiRes.text();
+        console.error("[Gemini API Error]", geminiRes.status, errText);
+        return NextResponse.json({ error: errText }, { status: geminiRes.status });
       }
-
-      const fbData = await fallbackRes.json();
-      const reply = fbData.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      return NextResponse.json({ reply });
     }
 
     const data = await geminiRes.json();
@@ -100,6 +117,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ reply });
   } catch (error: any) {
+    console.error("[Chat Route Error]", error);
     return NextResponse.json({ error: error.message || "Failed to generate reply" }, { status: 500 });
   }
 }

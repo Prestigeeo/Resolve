@@ -217,11 +217,21 @@ export default function Home() {
         }
 
         // Extract sender bank ONLY if explicitly named
-        for (const b of ["GTBank", "Access Bank", "Zenith Bank", "UBA", "FirstBank", "OPay", "Moniepoint", "Kuda", "PalmPay", "Fidelity", "FCMB", "Stanbic", "Sterling", "Wema"]) {
-          if (lower.includes(b.toLowerCase()) && !updatedFacts.sender_institution) {
-            updatedFacts.sender_institution = b;
+        const allBanks = [
+          "Providus Bank", "Providus", "GTBank", "Access Bank", "Zenith Bank", "UBA", 
+          "FirstBank", "OPay", "Moniepoint", "Kuda", "PalmPay", "Fidelity", "FCMB", 
+          "Stanbic", "Sterling", "Wema", "Union Bank", "Keystone", "Jaiz", "TajBank"
+        ];
+        for (const b of allBanks) {
+          if (lower.includes(b.toLowerCase())) {
+            updatedFacts.sender_institution = b.includes("Providus") ? "Providus Bank" : b;
             break;
           }
+        }
+
+        // Critical: If user clarifies that the recipient/vendor hasn't received the money, this is a FAILED_TRANSFER
+        if (/yet to receive|not received|didn't receive|did not receive|no enter|no credit|yet to get|hasn't gotten|has not gotten/i.test(lower)) {
+          updatedFacts.category = "FAILED_TRANSFER";
         }
 
         const sessMatch = text.match(/\b(\d{15,35})\b/);
@@ -238,6 +248,25 @@ export default function Home() {
 
         // Intelligently respond within the context of their category
         if (updatedFacts.category === "FAILED_TRANSFER") {
+          const bankName = updatedFacts.sender_institution || "your bank";
+
+          // If user specifically clarified that the recipient has not received the money
+          if (/yet to receive|not received|didn't receive|no enter|she's yet to/i.test(lower) || (updatedFacts.sender_institution && daysMentioned)) {
+            const aiReply: ChatMessage = {
+              id: "msg_ai_" + Date.now(),
+              sender: "resolve",
+              text: `Understood! Since the recipient has not received the money, this is a **Failed Interbank Transfer** from ${bankName}.\n\nBecause it has been ${daysMentioned ? `${daysMentioned} days` : "several days"} without an automatic reversal, the funds are stuck in NIBSS interbank transit.\n\nHere is your exact immediate step:\n1. **Locate your 30-digit NIBSS Session ID**: Download your receipt from the ${bankName} app.\n2. **Share with Recipient**: They can show this 30-digit number to their bank to check their incoming ledger.\n3. **Lodge Complaint with ${bankName}**: Under Central Bank of Nigeria (CBN) rules, ${bankName} has a **mandatory 14-day window** to resolve or reverse this.\n\nHave you already received an official Complaint Ticket ID from ${bankName}, or would you like me to prepare an official dispute letter now?`,
+              timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+              interactiveOptions: [
+                { label: `Yes, I logged a ticket with ${bankName}`, value: `Yes, I opened a complaint ticket with ${bankName}.` },
+                { label: "No, I haven't reported it yet", value: "No, I have not reported it to my bank yet." },
+                { label: "Create Official Complaint Letter", value: "Please create my official complaint letter now." }
+              ]
+            };
+            setMessages((prev) => [...prev, aiReply]);
+            setIsTyping(false);
+            return;
+          }
           // If user specifically said they have waited 7 days or more
           if (daysMentioned && daysMentioned >= 7 && daysMentioned < 14) {
             const aiReply: ChatMessage = {
@@ -309,7 +338,6 @@ export default function Home() {
           }
 
           // If both bank and amount are present
-          const bankName = updatedFacts.sender_institution;
           const amountText = `NGN ${updatedFacts.amount_ngn.toLocaleString()}`;
 
           const aiReply: ChatMessage = {
