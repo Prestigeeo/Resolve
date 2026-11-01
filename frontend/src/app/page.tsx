@@ -12,30 +12,20 @@ import {
 } from "../lib/api";
 import { 
   Send, 
-  Sparkles, 
   Scale, 
-  ShieldAlert, 
-  CheckCircle2, 
   Copy, 
   Check, 
   Download, 
   ExternalLink, 
   Clock, 
-  RefreshCw, 
   Smartphone, 
   ShoppingBag, 
-  ArrowRight, 
-  BookOpen, 
   HelpCircle, 
-  ChevronRight, 
   Zap, 
   Lock, 
-  MessageSquare, 
-  Plus, 
   FileText, 
   ShieldCheck,
-  AlertCircle,
-  CreditCard,
+  BookOpen,
   Info
 } from "lucide-react";
 
@@ -48,11 +38,10 @@ interface ChatMessage {
   immediateAdvice?: string;
   isEmergency?: boolean;
   emergencyData?: any;
-  interactiveOptions?: Array<{ label: string; value: string; field: string }>;
+  interactiveOptions?: Array<{ label: string; value: string }>;
   evidenceChecklist?: Array<{ id: string; title: string; description: string; is_mandatory: boolean }>;
   document?: GeneratedDocument;
   guidance?: ResolutionGuidance;
-  showDraftButton?: boolean;
 }
 
 export default function Home() {
@@ -66,11 +55,10 @@ export default function Home() {
   const [isTyping, setIsTyping] = useState(false);
   const [copiedDocId, setCopiedDocId] = useState<string | null>(null);
 
-  // Active Case Tracking
+  // Active Ongoing Case Facts (Preserved across all turns)
   const [activeCaseId, setActiveCaseId] = useState<string | null>(null);
   const [caseAccessToken, setCaseAccessToken] = useState<string | null>(null);
   const [currentFacts, setCurrentFacts] = useState<ExtractedCaseFacts | null>(null);
-  const [pendingField, setPendingField] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -82,17 +70,17 @@ export default function Home() {
     api.getEmergencyCodes().then(setEmergencyCodes).catch(console.error);
     api.getSources().then(setSources).catch(console.error);
 
-    // Initial greeting from Resolve Advocate
+    // Initial warm greeting
     const welcomeMessage: ChatMessage = {
       id: "msg_welcome",
       sender: "resolve",
-      text: "Hello! I am Resolve, your personal transaction dispute assistant for Nigeria.\n\nIf you experienced a failed transfer, missing airtime, an online vendor refusing delivery, or an unauthorized debit, I will help you sort it out step by step under CBN, NCC, or FCCPC rules.\n\nTell me what happened, or tap one of the common issues below to begin:",
+      text: "Hello! I am Resolve, your personal transaction dispute assistant for Nigeria.\n\nIf you experienced a failed bank transfer, missing airtime/data, an online vendor refusing delivery, or an unauthorized debit, I will help you sort it out step by step under CBN, NCC, or FCCPC rules.\n\nTell me what happened, or tap one of the common issues below to begin:",
       timestamp: "Just now",
       interactiveOptions: [
-        { label: "Failed Bank Transfer", value: "I was debited for a transfer and the recipient never received the money.", field: "quick_start" },
-        { label: "Vendor Refused Delivery", value: "I paid an online vendor on Instagram or WhatsApp and they stopped responding.", field: "quick_start" },
-        { label: "Missing Airtime / Data", value: "My bank debited me for airtime or data, but my phone was never credited.", field: "quick_start" },
-        { label: "Stolen Phone / Card Alert", value: "My phone was stolen or I noticed an unauthorized debit on my account.", field: "quick_start" }
+        { label: "Failed Bank Transfer", value: "I was debited for a transfer and the recipient never received the money." },
+        { label: "Vendor Refused Delivery", value: "I paid an online vendor on Instagram or WhatsApp and they stopped responding." },
+        { label: "Missing Airtime / Data", value: "My bank debited me for airtime or data, but my phone was never credited." },
+        { label: "Stolen Phone / Fraud Alert", value: "My phone was stolen or I noticed an unauthorized debit on my account." }
       ]
     };
     setMessages([welcomeMessage]);
@@ -120,11 +108,12 @@ export default function Home() {
     setIsTyping(true);
 
     try {
-      // Check if user is explicitly asking for a formal letter
-      const wantsDocument = /draft|letter|petition|official document|demand notice|complaint letter/i.test(text);
+      const lower = text.toLowerCase();
 
-      if (wantsDocument && (currentFacts || activeCaseId)) {
-        const doc = await api.generateDocument(activeCaseId || undefined, caseAccessToken || undefined, currentFacts || undefined);
+      // Check if user is asking for a formal letter
+      const wantsLetter = /draft|letter|petition|official document|demand notice|complaint letter/i.test(text);
+      if (wantsLetter && currentFacts) {
+        const doc = await api.generateDocument(activeCaseId || undefined, caseAccessToken || undefined, currentFacts);
         const docReply: ChatMessage = {
           id: "msg_ai_doc_" + Date.now(),
           sender: "resolve",
@@ -137,61 +126,166 @@ export default function Home() {
         return;
       }
 
-      // If we have an active case and were waiting for a specific question answer
-      if (activeCaseId && caseAccessToken && pendingField) {
-        const answers: Record<string, any> = { [pendingField]: text };
-        const clarifyRes = await api.submitClarification(activeCaseId, caseAccessToken, answers);
-        setCurrentFacts(clarifyRes.facts);
-        setPendingField(null);
-
-        // Fetch guidance
-        const details = await api.getCaseDetails(activeCaseId, caseAccessToken);
-
-        let followUpText = `Got it, I have noted that: **${text}**.\n\nHere is what you should do right now:`;
-        
-        // Practical, calm guidance
-        if (clarifyRes.facts.category === "FAILED_TRANSFER") {
-          followUpText = `Thank you for sharing that. Here is your direct plan of action:\n\n1. **Locate your 30-digit NIBSS Session ID**: Check your transaction receipt or bank statement. This 30-digit number is the master proof the receiving bank uses to confirm where the money is.\n2. **Share with Recipient**: Send the 30-digit Session ID to the person you sent money to. They can give it to their bank to verify if it entered their backend ledger.\n3. **Log Complaint with Your Bank**: If it does not reverse within 24 to 72 hours, open your bank app, tap Dispute / Help, paste the Session ID, and request a tracking Ticket ID.\n4. **14-Day Resolution Window**: Under Central Bank of Nigeria (CBN) rules, your bank has 14 days to resolve this. If they refuse after 14 days, you can escalate directly to the CBN Consumer Protection Department (cpd@cbn.gov.ng).`;
-        }
-
-        const aiReply: ChatMessage = {
+      // Check if user is asking how to find session ID
+      if (/how do i find|where is the session id|where to find/i.test(lower) && lower.includes("session")) {
+        const sessionReply: ChatMessage = {
           id: "msg_ai_" + Date.now(),
           sender: "resolve",
-          text: followUpText,
+          text: "To find your 30-digit NIBSS Session ID:\n\n1. Open your bank mobile app and tap on the transaction in your history.\n2. View or download the official transaction receipt.\n3. Look for a 30-digit number labeled **Session ID**, **NIBSS Ref**, or **Transaction Reference** (it usually begins with your bank's 6-digit code, like 100004... or 000014...).\n\nThis 30-digit code is the definitive proof that allows the receiving bank to locate the money in their backend ledger.",
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-          guidance: details.guidance,
-          evidenceChecklist: details.guidance.evidence_checklist,
           interactiveOptions: [
-            { label: "Create Official Complaint Letter", value: "Please draft my formal complaint letter now.", field: "action_request" },
-            { label: "How do I find the Session ID?", value: "How do I find the 30-digit NIBSS Session ID on my bank receipt?", field: "help_request" }
-          ],
-          showDraftButton: true
+            { label: "I have the Session ID", value: "I have found my 30-digit Session ID on the receipt." },
+            { label: "My receipt only shows a short reference", value: "My receipt only has a short reference number, not 30 digits." },
+            { label: "Create Official Complaint Letter", value: "Please create my official complaint letter now." }
+          ]
         };
-        setMessages((prev) => [...prev, aiReply]);
+        setMessages((prev) => [...prev, sessionReply]);
         setIsTyping(false);
         return;
       }
 
-      // Initial Intake Analysis
+      // Case 1: We ALREADY have an active ongoing case! (Never forget context!)
+      if (currentFacts && currentFacts.category && currentFacts.category !== "AMBIGUOUS") {
+        const updatedFacts = { ...currentFacts };
+
+        // Extract any new details provided in this turn
+        const amtMatch = lower.match(/(?:₦|ngn|naira|#)?\s*([0-9]{1,3}(?:,[0-9]{3})*|[0-9]+)\s*(?:naira|k|thousand)?/);
+        if (amtMatch && !updatedFacts.amount_ngn) {
+          let val = parseFloat(amtMatch[1].replace(/,/g, ""));
+          if ((lower.includes("k") || lower.includes("thousand")) && val < 1000) val *= 1000;
+          if (val > 0) updatedFacts.amount_ngn = val;
+        }
+
+        for (const b of ["GTBank", "Access Bank", "Zenith Bank", "UBA", "FirstBank", "OPay", "Moniepoint", "Kuda", "PalmPay", "Fidelity", "FCMB", "Stanbic", "Sterling", "Wema"]) {
+          if (lower.includes(b.toLowerCase()) && !updatedFacts.sender_institution) {
+            updatedFacts.sender_institution = b;
+            break;
+          }
+        }
+
+        const sessMatch = text.match(/\b(\d{15,35})\b/);
+        if (sessMatch) updatedFacts.session_id_or_ref = sessMatch[1];
+
+        // Did the user mention waiting a number of days? (e.g. 7 days, 14 days, etc.)
+        const waitedMatch = lower.match(/(?:waited|been|waiting|past|over|for)\s*([0-9]+)\s*days?/);
+        let daysMentioned = waitedMatch ? parseInt(waitedMatch[1]) : undefined;
+        if (!daysMentioned && lower.includes("7 days")) daysMentioned = 7;
+        if (!daysMentioned && lower.includes("14 days")) daysMentioned = 14;
+        if (!daysMentioned && (lower.includes("yesterday") || lower.includes("today") || lower.includes("48 hours"))) daysMentioned = 2;
+
+        setCurrentFacts(updatedFacts);
+
+        // Intelligently respond within the context of their category
+        if (updatedFacts.category === "FAILED_TRANSFER") {
+          // If user specifically said they have waited 7 days or more
+          if (daysMentioned && daysMentioned >= 7 && daysMentioned < 14) {
+            const aiReply: ChatMessage = {
+              id: "msg_ai_" + Date.now(),
+              sender: "resolve",
+              text: `Understood. Waiting ${daysMentioned} days without a reversal is deeply frustrating. Because more than 72 hours have passed, the automatic NIBSS interbank auto-reversal did not resolve it.\n\nHere is where you stand under Central Bank of Nigeria (CBN) regulations:\n\n1. **The 14-Day Bank SLA**: Under the CBN Consumer Protection Framework, commercial banks have a mandatory **14-day window** to resolve electronic payment complaints once logged.\n2. **Have you opened an official ticket?** If you have already reported this to your bank's customer service, that 14-day clock is currently running.\n3. **If 14 days expire without a refund**: You earn the legal right to escalate directly to the Central Bank of Nigeria Consumer Protection Department (cpd@cbn.gov.ng).\n\nHave you already received an official Complaint Ticket ID from your bank, or would you like to draft a formal complaint letter now?`,
+              timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+              interactiveOptions: [
+                { label: "Yes, I logged a ticket with my bank", value: "Yes, I opened a complaint ticket with customer care." },
+                { label: "No, I haven't reported it to my bank yet", value: "No, I have not reported it to my bank yet." },
+                { label: "Create Official Complaint Letter", value: "Please create my official complaint letter now." }
+              ]
+            };
+            setMessages((prev) => [...prev, aiReply]);
+            setIsTyping(false);
+            return;
+          }
+
+          if (daysMentioned && daysMentioned >= 14) {
+            const aiReply: ChatMessage = {
+              id: "msg_ai_" + Date.now(),
+              sender: "resolve",
+              text: `Because it has been **over 14 days** since the transaction with no refund, your bank has violated the Central Bank of Nigeria (CBN) dispute resolution deadline.\n\nYou are now legally entitled to escalate directly to the **CBN Consumer Protection Department (cpd@cbn.gov.ng)**.\n\nI can draft your official CBN escalation letter right now citing your transaction details and demanding immediate resolution.`,
+              timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+              interactiveOptions: [
+                { label: "Create Official Complaint Letter", value: "Please create my official complaint letter now." },
+                { label: "What evidence should I attach?", value: "What evidence do I need to attach to the CBN complaint?" }
+              ]
+            };
+            setMessages((prev) => [...prev, aiReply]);
+            setIsTyping(false);
+            return;
+          }
+
+          // If user reports they have a ticket
+          if (lower.includes("ticket") || lower.includes("logged") || lower.includes("reported")) {
+            const aiReply: ChatMessage = {
+              id: "msg_ai_" + Date.now(),
+              sender: "resolve",
+              text: `That is good—logging the ticket started your bank's statutory 14-day resolution clock under CBN rules.\n\nWhile your bank investigates with the receiving bank across NIBSS, keep your Ticket ID and 30-digit Session ID handy.\n\nWould you like me to prepare a formal dispute letter for your records or to follow up with your bank's dispute desk?`,
+              timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+              interactiveOptions: [
+                { label: "Create Official Complaint Letter", value: "Please create my official complaint letter now." },
+                { label: "What if the bank stops responding?", value: "What should I do if the bank stops responding after 14 days?" }
+              ]
+            };
+            setMessages((prev) => [...prev, aiReply]);
+            setIsTyping(false);
+            return;
+          }
+
+          // If bank or amount was just provided
+          const bankName = updatedFacts.sender_institution || "your bank";
+          const amountText = updatedFacts.amount_ngn ? `NGN ${updatedFacts.amount_ngn.toLocaleString()}` : "the amount";
+
+          const aiReply: ChatMessage = {
+            id: "msg_ai_" + Date.now(),
+            sender: "resolve",
+            text: `Got it: ${amountText} from ${bankName}.\n\nTo give you the most accurate next step: roughly how long ago did this transfer happen?`,
+            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+            interactiveOptions: [
+              { label: "Happened today or yesterday (less than 48h)", value: "It happened within the last 48 hours." },
+              { label: "I have waited 3 to 7 days", value: "I have already waited for 7 days the money has not been reversed." },
+              { label: "Over 14 days ago without refund", value: "It has been more than 14 days with no refund." }
+            ]
+          };
+          setMessages((prev) => [...prev, aiReply]);
+          setIsTyping(false);
+          return;
+        }
+
+        // If Merchant Non-delivery
+        if (updatedFacts.category === "MERCHANT_NON_DELIVERY") {
+          const aiReply: ChatMessage = {
+            id: "msg_ai_" + Date.now(),
+            sender: "resolve",
+            text: `Under Section 114 of the Federal Competition and Consumer Protection Act (FCCPA) 2018, online vendors are legally required to deliver paid goods on time or issue a mandatory full refund.\n\nI can prepare a formal 7-Day Statutory Refund Demand Notice to deliver to the merchant, which serves as mandatory evidence if you escalate to the FCCPC portal.`,
+            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+            interactiveOptions: [
+              { label: "Create Official Complaint Letter", value: "Please create my official complaint letter now." },
+              { label: "How to dispute via Paystack/Flutterwave?", value: "How do I dispute this if I paid with Paystack or Flutterwave?" }
+            ]
+          };
+          setMessages((prev) => [...prev, aiReply]);
+          setIsTyping(false);
+          return;
+        }
+      }
+
+      // Case 2: Brand new intake conversation (First message)
       const intakeRes = await api.analyzeIntake(text);
       setActiveCaseId(intakeRes.case_id);
       setCaseAccessToken(intakeRes.case_access_token);
       setCurrentFacts(intakeRes.facts);
 
-      // Scenario 1: Active Emergency Fraud detected
+      // Scenario A: Active Emergency Fraud detected
       if (intakeRes.is_urgent_emergency) {
         const emergencyReply: ChatMessage = {
           id: "msg_ai_" + Date.now(),
           sender: "resolve",
-          text: "Active emergency: Freeze your account immediately to prevent further withdrawals.",
+          text: "Active security emergency: Freeze your account immediately to prevent further withdrawals.",
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-          empatheticIntro: intakeRes.empathetic_intro || "Please stay calm. Having your phone stolen or watching unauthorized debits happen is deeply frightening, but taking action right now will protect your balance. Your immediate priority is locking your account before visiting a branch.",
-          immediateAdvice: intakeRes.immediate_advice || "Dial your bank's emergency USSD code from any borrowed phone right now to lock mobile and card transactions.",
+          empatheticIntro: "Please stay calm. Having your phone stolen or watching unauthorized debits happen is deeply frightening, but taking action right now will protect your balance. Your immediate priority is locking your account before visiting a branch.",
+          immediateAdvice: "Dial your bank's emergency USSD code from any borrowed phone right now to lock mobile and card transactions.",
           isEmergency: true,
           emergencyData: intakeRes.emergency_instructions || emergencyCodes["GTBANK"],
-          interactiveOptions: intakeRes.action_chips || [
-            { label: "I have locked my account", value: "I dialed the USSD code and locked my account. What is the next step?", field: "emergency_status" },
-            { label: "My banking SIM was also stolen", value: "My SIM card was stolen with the phone.", field: "emergency_status" }
+          interactiveOptions: [
+            { label: "I have locked my account", value: "I dialed the USSD code and locked my account. What is the next step?" },
+            { label: "My banking SIM was also stolen", value: "My SIM card was stolen with the phone." }
           ]
         };
         setMessages((prev) => [...prev, emergencyReply]);
@@ -199,56 +293,94 @@ export default function Home() {
         return;
       }
 
-      // Scenario 2: Conversational Triage with ONE Focused Follow-up Question
-      if (intakeRes.clarifying_questions && intakeRes.clarifying_questions.length > 0) {
-        const nextQ = intakeRes.clarifying_questions[0];
-        setPendingField(nextQ.field_target);
+      // Scenario B: Failed Bank Transfer Initial Turn
+      if (intakeRes.facts.category === "FAILED_TRANSFER") {
+        const hasBank = Boolean(intakeRes.facts.sender_institution);
+        const hasAmount = Boolean(intakeRes.facts.amount_ngn);
 
-        // Keep options simple: at most 2 or 3 clear options
-        let options = intakeRes.action_chips;
-        if (!options || options.length === 0) {
-          if (nextQ.options) {
-            options = nextQ.options.slice(0, 3).map((opt) => ({ label: opt, value: opt, field: nextQ.field_target }));
-          } else {
-            options = [
-              { label: "Happened within last 48 hours", value: "It happened within the last 48 hours.", field: "timeline" },
-              { label: "Over 14 days ago without refund", value: "It has been more than 14 days with no refund.", field: "timeline" }
-            ];
-          }
+        let questionText = "Which bank or fintech app did you send the money from, and roughly how much was it?";
+        let pills: Array<{ label: string; value: string }> = [
+          { label: "GTBank", value: "I sent it from GTBank." },
+          { label: "Access Bank", value: "I sent it from Access Bank." },
+          { label: "OPay", value: "I sent it from my OPay app." },
+          { label: "Zenith Bank", value: "I sent it from Zenith Bank." }
+        ];
+
+        if (hasBank && hasAmount) {
+          questionText = `Got it: NGN ${intakeRes.facts.amount_ngn?.toLocaleString()} from ${intakeRes.facts.sender_institution}.\n\nRoughly how long ago did this transfer happen?`;
+          pills = [
+            { label: "Happened within last 48 hours", value: "It happened within the last 48 hours." },
+            { label: "I have waited 3 to 7 days", value: "I have already waited for 7 days the money has not been reversed." },
+            { label: "Over 14 days ago without refund", value: "It has been more than 14 days with no refund." }
+          ];
         }
 
         const conversationalReply: ChatMessage = {
           id: "msg_ai_" + Date.now(),
           sender: "resolve",
-          text: nextQ.question_text,
+          text: questionText,
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-          empatheticIntro: intakeRes.empathetic_intro,
-          immediateAdvice: intakeRes.immediate_advice,
-          interactiveOptions: options ? options.slice(0, 3) : undefined
+          empatheticIntro: "I'm really sorry to hear that. Having your money debited without reaching the recipient can be very stressful, especially when it is for an urgent expense. Rest assured, your funds are protected under Central Bank of Nigeria regulations.",
+          immediateAdvice: "Good to know: Over 85% of failed bank transfers reverse automatically within 24 to 72 hours through daily interbank clearing. You usually do not need to write a petition or dispute letter on day one.",
+          interactiveOptions: pills
         };
         setMessages((prev) => [...prev, conversationalReply]);
         setIsTyping(false);
         return;
       }
 
-      // Scenario 3: Complete & Ready for Action Guidance
-      const details = await api.getCaseDetails(intakeRes.case_id, intakeRes.case_access_token);
+      // Scenario C: Online Vendor Non-Delivery Initial Turn
+      if (intakeRes.facts.category === "MERCHANT_NON_DELIVERY") {
+        const conversationalReply: ChatMessage = {
+          id: "msg_ai_" + Date.now(),
+          sender: "resolve",
+          text: "How did you pay the seller: direct bank transfer or through an online checkout link (like Paystack or Flutterwave)?",
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          empatheticIntro: "I'm really sorry that happened. Paying an online vendor on Instagram or WhatsApp only to be ghosted or blocked is so frustrating. Fortunately, Nigerian consumer protection law (FCCPA 2018) is strictly on your side.",
+          immediateAdvice: "Depending on how you paid, you might be able to recover your money very quickly. If you paid via a card or online checkout (like Paystack or Flutterwave), you can dispute the charge directly to freeze their payout.",
+          interactiveOptions: [
+            { label: "Direct bank transfer to their account", value: "I paid via a direct bank transfer to the seller's account." },
+            { label: "Card or online link (Paystack/Flutterwave)", value: "I paid using an online checkout link (Paystack or Flutterwave)." },
+            { label: "The seller blocked my line", value: "The seller blocked my phone number and WhatsApp after receiving payment." }
+          ]
+        };
+        setMessages((prev) => [...prev, conversationalReply]);
+        setIsTyping(false);
+        return;
+      }
 
-      const successReply: ChatMessage = {
+      // Scenario D: Undelivered Airtime / Data Initial Turn
+      if (intakeRes.facts.category === "UNDELIVERED_AIRTIME_DATA") {
+        const conversationalReply: ChatMessage = {
+          id: "msg_ai_" + Date.now(),
+          sender: "resolve",
+          text: "Did you buy this from your bank app, or directly using your phone's SIM menu?",
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          empatheticIntro: "I know how annoying that is—especially when you urgently need airtime or data, the bank debits you immediately, but nothing arrives on your phone.",
+          immediateAdvice: "Helpful tip: If you bought this through your bank app, calling the network provider (MTN, Airtel, Glo, 9mobile) often leads to a dead end because their backend will show no record. In most cases, the issue is between your bank and the VTU aggregator.",
+          interactiveOptions: [
+            { label: "Bought from my bank mobile app", value: "I bought it through my bank mobile app." },
+            { label: "Bought directly via phone SIM code", value: "I bought it directly from the telecom network." }
+          ]
+        };
+        setMessages((prev) => [...prev, conversationalReply]);
+        setIsTyping(false);
+        return;
+      }
+
+      // Default fallback
+      const conversationalReply: ChatMessage = {
         id: "msg_ai_" + Date.now(),
         sender: "resolve",
-        text: `I have reviewed the facts of your dispute under **${intakeRes.facts.category.replace(/_/g, " ")}**.\n\nHere is your immediate action roadmap to get this resolved:`,
+        text: "Tell me a bit more about what occurred, or choose one of the options below so I can guide you properly:",
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        empatheticIntro: intakeRes.empathetic_intro,
-        immediateAdvice: intakeRes.immediate_advice,
-        guidance: details.guidance,
-        evidenceChecklist: details.guidance.evidence_checklist,
         interactiveOptions: [
-          { label: "Create Official Complaint Letter", value: "Please draft my formal complaint letter now.", field: "action_request" }
-        ],
-        showDraftButton: true
+          { label: "Failed Bank Transfer", value: "I was debited for a bank transfer that failed to credit." },
+          { label: "Vendor Refused Delivery", value: "Paid an online vendor who refused to deliver." },
+          { label: "Missing Airtime / Data", value: "Debited for airtime or data but never received value." }
+        ]
       };
-      setMessages((prev) => [...prev, successReply]);
+      setMessages((prev) => [...prev, conversationalReply]);
     } catch (err: any) {
       const errorReply: ChatMessage = {
         id: "msg_err_" + Date.now(),
@@ -256,8 +388,8 @@ export default function Home() {
         text: "I experienced a temporary network issue. Please select an option below or send your message again.",
         timestamp: "Now",
         interactiveOptions: [
-          { label: "Failed Bank Transfer", value: "I was debited for a bank transfer that failed to credit.", field: "quick_start" },
-          { label: "Vendor Refused Delivery", value: "Paid an online vendor who refused to deliver.", field: "quick_start" }
+          { label: "Failed Bank Transfer", value: "I was debited for a bank transfer that failed to credit." },
+          { label: "Vendor Refused Delivery", value: "Paid an online vendor who refused to deliver." }
         ]
       };
       setMessages((prev) => [...prev, errorReply]);
@@ -268,25 +400,6 @@ export default function Home() {
 
   const handleOptionClick = (value: string) => {
     handleSendMessage(value);
-  };
-
-  const handleGenerateOfficialDocument = async () => {
-    setIsTyping(true);
-    try {
-      const doc = await api.generateDocument(activeCaseId || undefined, caseAccessToken || undefined, currentFacts || undefined);
-      const docReply: ChatMessage = {
-        id: "msg_ai_doc_" + Date.now(),
-        sender: "resolve",
-        text: "Here is your official dispute letter, ready to send to your bank or the regulator. You can copy it or download it below:",
-        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        document: doc
-      };
-      setMessages((prev) => [...prev, docReply]);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsTyping(false);
-    }
   };
 
   const handleCopyDocument = (doc: GeneratedDocument, docId: string) => {
@@ -311,7 +424,6 @@ export default function Home() {
     setActiveCaseId(null);
     setCaseAccessToken(null);
     setCurrentFacts(null);
-    setPendingField(null);
     setMessages([
       {
         id: "msg_new",
@@ -319,10 +431,10 @@ export default function Home() {
         text: "Started a fresh complaint session. Tell me what happened with your transaction:",
         timestamp: "Just now",
         interactiveOptions: [
-          { label: "Failed Bank Transfer", value: "I transferred money via my bank and recipient was not credited.", field: "quick_start" },
-          { label: "Vendor Refused Delivery", value: "Paid an Instagram or WhatsApp vendor who refused delivery.", field: "quick_start" },
-          { label: "Undelivered Airtime / Data", value: "Debited for airtime or data bundle but didn't receive value.", field: "quick_start" },
-          { label: "Snatched Phone / Scam", value: "My phone was stolen, please give me the instant bank lock codes!", field: "quick_start" }
+          { label: "Failed Bank Transfer", value: "I transferred money via my bank and recipient was not credited." },
+          { label: "Vendor Refused Delivery", value: "Paid an Instagram or WhatsApp vendor who refused delivery." },
+          { label: "Undelivered Airtime / Data", value: "Debited for airtime or data bundle but didn't receive value." },
+          { label: "Snatched Phone / Scam", value: "My phone was stolen, please give me the instant bank lock codes!" }
         ]
       }
     ]);
@@ -339,7 +451,7 @@ export default function Home() {
       />
 
       {/* Main Container */}
-      <main className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 py-4 sm:py-6 flex flex-col h-[calc(100vh-68px)]">
+      <main className="flex-1 max-w-3xl w-full mx-auto px-4 sm:px-6 py-4 sm:py-6 flex flex-col h-[calc(100vh-68px)]">
         
         {/* View: How Redress Works Guide */}
         {activeTab === "guide" && (
@@ -480,8 +592,8 @@ export default function Home() {
                 <span className="text-[11px] text-slate-400 hidden sm:inline">&bull; CBN, NCC &amp; FCCPC Guidelines</span>
               </div>
 
-              {currentFacts?.category && (
-                <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-slate-200/70 text-slate-700 capitalize">
+              {currentFacts?.category && currentFacts.category !== "AMBIGUOUS" && (
+                <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 capitalize">
                   {currentFacts.category.replace(/_/g, " ").toLowerCase()}
                 </span>
               )}
@@ -683,7 +795,7 @@ export default function Home() {
                   type="text"
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
-                  placeholder="Describe what happened with your transaction..."
+                  placeholder="Type your message or answer here..."
                   className="flex-1 bg-transparent px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 outline-none"
                 />
 
