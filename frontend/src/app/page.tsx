@@ -59,6 +59,7 @@ export default function Home() {
   const [activeCaseId, setActiveCaseId] = useState<string | null>(null);
   const [caseAccessToken, setCaseAccessToken] = useState<string | null>(null);
   const [currentFacts, setCurrentFacts] = useState<ExtractedCaseFacts | null>(null);
+  const [aiConnected, setAiConnected] = useState<boolean | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -69,6 +70,14 @@ export default function Home() {
   useEffect(() => {
     api.getEmergencyCodes().then(setEmergencyCodes).catch(console.error);
     api.getSources().then(setSources).catch(console.error);
+
+    // Verify Gemini AI connectivity on mount
+    fetch("/api/chat")
+      .then((res) => res.json())
+      .then((data) => {
+        setAiConnected(Boolean(data?.hasKey));
+      })
+      .catch(() => setAiConnected(false));
 
     // Initial warm greeting
     const welcomeMessage: ChatMessage = {
@@ -580,16 +589,37 @@ export default function Home() {
 
       // Scenario C: Online Vendor Non-Delivery Initial Turn
       if (intakeRes.facts.category === "MERCHANT_NON_DELIVERY") {
+        const hasVendorIssue = /blocked|ghosted|refused|scam|never delivered|fake tracking|unresponsive|stopped replying/i.test(lower);
+
+        if (!hasVendorIssue) {
+          // The user simply sent money to a vendor, but has not specified whether it's a transfer delay or merchant breach
+          const conversationalReply: ChatMessage = {
+            id: "msg_ai_" + Date.now(),
+            sender: "resolve",
+            text: "To help you take the exact right step under Nigerian regulations: what is the current issue with this vendor transaction?",
+            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+            empatheticIntro: "Understood. You sent payment to a vendor. Before taking action, we need to know whether the money reached them or if there is an issue with delivery.",
+            interactiveOptions: [
+              { label: "Vendor claims they didn't receive money", value: "The vendor claims they have not received the transfer yet." },
+              { label: "Vendor confirmed payment but won't deliver", value: "The vendor confirmed receipt of payment but refuses to deliver the items." },
+              { label: "The seller blocked or ghosted me", value: "The seller blocked my phone number and WhatsApp after receiving payment." }
+            ]
+          };
+          setMessages((prev) => [...prev, conversationalReply]);
+          setIsTyping(false);
+          return;
+        }
+
         const conversationalReply: ChatMessage = {
           id: "msg_ai_" + Date.now(),
           sender: "resolve",
           text: "How did you pay the seller: direct bank transfer or through an online checkout link (like Paystack or Flutterwave)?",
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-          empatheticIntro: "I'm really sorry that happened. Paying an online vendor on Instagram or WhatsApp only to be ghosted or blocked is so frustrating. Fortunately, Nigerian consumer protection law (FCCPA 2018) is strictly on your side.",
-          immediateAdvice: "Depending on how you paid, you might be able to recover your money very quickly. If you paid via a card or online checkout (like Paystack or Flutterwave), you can dispute the charge directly to freeze their payout.",
+          empatheticIntro: "I am sorry that happened. Dealing with an unresponsive online vendor is stressful, but Nigerian consumer protection law (FCCPA 2018) provides clear legal remedies.",
+          immediateAdvice: "Depending on how you paid, you might be able to recover your money quickly. If you paid via a card or online checkout (like Paystack or Flutterwave), you can dispute the charge directly to freeze their payout.",
           interactiveOptions: [
             { label: "Direct bank transfer to their account", value: "I paid via a direct bank transfer to the seller's account." },
-            { label: "Card or online link (Paystack/Flutterwave)", value: "I paid using an online checkout link (Paystack or Flutterwave)." },
+            { label: "Card or online link (Paystack/Flutterwave)", value: "How do I dispute this if I paid with Paystack or Flutterwave?" },
             { label: "The seller blocked my line", value: "The seller blocked my phone number and WhatsApp after receiving payment." }
           ]
         };
@@ -841,11 +871,25 @@ export default function Home() {
                 <span className="text-[11px] text-slate-400 hidden sm:inline">&bull; CBN, NCC &amp; FCCPC Guidelines</span>
               </div>
 
-              {currentFacts?.category && currentFacts.category !== "AMBIGUOUS" && (
-                <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 capitalize">
-                  {currentFacts.category.replace(/_/g, " ").toLowerCase()}
-                </span>
-              )}
+              <div className="flex items-center space-x-2">
+                {aiConnected === true && (
+                  <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-semibold">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
+                    <span>Gemini AI Connected</span>
+                  </span>
+                )}
+                {aiConnected === false && (
+                  <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-medium" title="Add GEMINI_API_KEY in Vercel to activate Gemini">
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                    <span>Offline Rule Mode</span>
+                  </span>
+                )}
+                {currentFacts?.category && currentFacts.category !== "AMBIGUOUS" && (
+                  <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-50 text-slate-700 border border-slate-200 capitalize">
+                    {currentFacts.category.replace(/_/g, " ").toLowerCase()}
+                  </span>
+                )}
+              </div>
             </div>
 
             {/* Messages Thread */}

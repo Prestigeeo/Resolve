@@ -231,10 +231,10 @@ export class ClientSideFallbackEngine {
     } else if (/yet to get|yet to receive|hasn't received|has not received|no receive|no enter|did not drop|didn't drop|no credit|not credited|uncredited/.test(textLower)) {
       // Payment initiated but recipient has not received the funds = Failed Bank Transfer
       category = "FAILED_TRANSFER";
+    } else if (/transfer|transferred|sent.*money|debited|debit|nip|session id|didn't receive/.test(textLower)) {
+      category = "FAILED_TRANSFER";
     } else if (/refused to deliver|blocked me|ghosted|fake tracking|scam vendor|never delivered|stopped replying/.test(textLower)) {
       category = "MERCHANT_NON_DELIVERY";
-    } else if (/transfer|transferred|sent money|debited|debit|nip|session id|didn't receive/.test(textLower)) {
-      category = "FAILED_TRANSFER";
     } else if (/vendor|merchant|boutique|ordered|bought|instagram|whatsapp|dress|shoes|bag|hair/.test(textLower)) {
       category = "MERCHANT_NON_DELIVERY";
     }
