@@ -107,17 +107,17 @@ export const IntakeForm: React.FC<IntakeFormProps> = ({ onSubmit, isLoading }) =
           <span className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-black shadow-md shadow-blue-600/40">1</span>
           <span>Triage Complaint</span>
         </div>
-        <span className="text-slate-600">➔</span>
+        <span className="text-slate-600"></span>
         <div className="flex items-center space-x-2 text-slate-500 shrink-0">
           <span className="w-5 h-5 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center text-[10px]">2</span>
           <span>Evidence Gate</span>
         </div>
-        <span className="text-slate-600">➔</span>
+        <span className="text-slate-600"></span>
         <div className="flex items-center space-x-2 text-slate-500 shrink-0">
           <span className="w-5 h-5 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center text-[10px]">3</span>
           <span>Statutory Roadmap</span>
         </div>
-        <span className="text-slate-600">➔</span>
+        <span className="text-slate-600"></span>
         <div className="flex items-center space-x-2 text-slate-500 shrink-0">
           <span className="w-5 h-5 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center text-[10px]">4</span>
           <span>Official Dossier</span>
@@ -221,7 +221,7 @@ export const IntakeForm: React.FC<IntakeFormProps> = ({ onSubmit, isLoading }) =
                 onClick={() => setText(ex.text)}
                 className="text-xs bg-[#0F172A] hover:bg-[#1A2642] text-slate-300 border border-white/5 hover:border-sky-500/30 p-2.5 rounded-xl transition-all text-left flex items-start space-x-2"
               >
-                <span className="text-sky-400 font-bold shrink-0">▸</span>
+                <span className="text-sky-400 font-bold shrink-0"></span>
                 <div>
                   <span className="font-bold text-white block text-[11px]">{ex.title}:</span>
                   <span className="text-[11px] text-slate-400 truncate block max-w-xs">{ex.text}</span>

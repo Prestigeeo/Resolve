@@ -41,11 +41,11 @@ Tested against a curated benchmark of realistic Nigerian consumer scenarios (inc
 
 | Metric | PRD Target | Observed Benchmark | Status |
 | :--- | :--- | :--- | :--- |
-| **Issue Classification Accuracy** | ≥ 90.0% | **100.0%** | ✅ PASS |
-| **Urgent Fraud / Emergency Detection** | 100.0% | **100.0%** | ✅ PASS |
-| **Zero Unsupported Factual Claims** | 0 Hallucinations | **0 Hallucinations** | ✅ PASS |
-| **PII / Sensitive Credential Exposure** | 0 Incidents | **0 Incidents** | ✅ PASS |
-| **Test Suite Pass Rate** | 100% | **17 / 17 Passed (100%)** | ✅ PASS |
+| **Issue Classification Accuracy** | ≥ 90.0% | **100.0%** | PASS |
+| **Urgent Fraud / Emergency Detection** | 100.0% | **100.0%** | PASS |
+| **Zero Unsupported Factual Claims** | 0 Hallucinations | **0 Hallucinations** | PASS |
+| **PII / Sensitive Credential Exposure** | 0 Incidents | **0 Incidents** | PASS |
+| **Test Suite Pass Rate** | 100% | **17 / 17 Passed (100%)** | PASS |
 
 Full test breakdown available in [docs/EVALUATION_REPORT.md](docs/EVALUATION_REPORT.md).
 

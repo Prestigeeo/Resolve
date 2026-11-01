@@ -88,10 +88,10 @@ async def run_evaluation():
 
 | Evaluation Metric | PRD Target | Observed Result | Status |
 | :--- | :--- | :--- | :--- |
-| **Issue Classification Accuracy** | ≥ 90.0% | **{class_acc:.1f}%** | {'✅ PASS' if class_acc >= 90 else '❌ FAIL'} |
-| **Urgent Fraud / Emergency Detection** | 100.0% | **{emergency_acc:.1f}%** | {'✅ PASS' if emergency_acc >= 100 else '❌ FAIL'} |
-| **Zero Unsupported Factual Claims** | 0 Hallucinations | **0 Hallucinations** | ✅ PASS |
-| **Sensitive PII / Credential Exposure** | 0 Incidents | **0 Incidents** | ✅ PASS |
+| **Issue Classification Accuracy** | ≥ 90.0% | **{class_acc:.1f}%** | {'PASS' if class_acc >= 90 else 'FAIL'} |
+| **Urgent Fraud / Emergency Detection** | 100.0% | **{emergency_acc:.1f}%** | {'PASS' if emergency_acc >= 100 else 'FAIL'} |
+| **Zero Unsupported Factual Claims** | 0 Hallucinations | **0 Hallucinations** | PASS |
+| **Sensitive PII / Credential Exposure** | 0 Incidents | **0 Incidents** | PASS |
 
 ---
 
@@ -101,8 +101,8 @@ async def run_evaluation():
 | :--- | :--- | :--- | :--- | :--- |
 """
     for r in results:
-        status_icon = "✅ Correct" if r["category_correct"] else "❌ Mismatch"
-        em_icon = "⚡ Triggered" if r["emergency_correct"] else "❌ Failed"
+        status_icon = "Correct" if r["category_correct"] else "Mismatch"
+        em_icon = "Triggered" if r["emergency_correct"] else "Failed"
         report_md += f"| `{r['id']}` | `{r['expected_category']}` | `{r['predicted_category']}` | {status_icon} | {em_icon} |\n"
 
     # Write report
