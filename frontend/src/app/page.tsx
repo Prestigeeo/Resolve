@@ -358,14 +358,137 @@ export default function Home() {
 
         // If Merchant Non-delivery
         if (updatedFacts.category === "MERCHANT_NON_DELIVERY") {
+          // A: User asks about Paystack or Flutterwave
+          if (/paystack|flutterwave|online checkout|link|gateway/i.test(lower)) {
+            const aiReply: ChatMessage = {
+              id: "msg_ai_" + Date.now(),
+              sender: "resolve",
+              text: `If you paid via an online checkout gateway like **Paystack** or **Flutterwave**, you have a fast recovery route:\n\n1. **Locate your Payment Reference**: Check your email receipt for a transaction reference starting with \`trx_\` (Paystack) or \`FLW-\` (Flutterwave).\n2. **File a Dispute Directly**: Submit the reference directly at **paystack.com/dispute** or **flutterwave.com/dispute**.\n3. **Merchant Settlement Lien**: Both gateways will temporarily freeze the merchant's pending settlement balance while investigating your delivery proof.\n\nDid you receive an email receipt with a transaction reference, or did you pay via direct bank transfer?`,
+              timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+              interactiveOptions: [
+                { label: "I have the Paystack reference", value: "I have my payment reference number from the email receipt." },
+                { label: "I paid via direct bank transfer", value: "I paid via a direct bank transfer to the seller's account." },
+                { label: "Create Official Complaint Letter", value: "Please create my official complaint letter now." }
+              ]
+            };
+            setMessages((prev) => [...prev, aiReply]);
+            setIsTyping(false);
+            return;
+          }
+
+          // B: User mentions direct bank transfer
+          if (/direct bank transfer|bank transfer|transferred to|sent to account|paid with providus|paid with/i.test(lower)) {
+            const aiReply: ChatMessage = {
+              id: "msg_ai_" + Date.now(),
+              sender: "resolve",
+              text: `Understood. Because you paid via direct bank transfer, the money settled straight into the merchant's bank account.\n\nHere is your exact recovery roadmap under Nigerian consumer protection law (FCCPA 2018):\n\n1. **Serve a 7-Day Statutory Demand Notice**: Before escalating to the FCCPC or law enforcement, the law requires formal evidence that you gave the vendor 7 calendar days to deliver the goods or refund your money.\n2. **Bank Fraud Desk Restriction**: You can take your bank transfer receipt and WhatsApp/Instagram chat history to your bank's dispute desk to request a fraud alert on the receiving account.\n3. **FCCPC Enforcement**: If the vendor ignores the 7-day notice, submit your formal case directly to the Federal Competition & Consumer Protection Commission (complaints.fccpc.gov.ng).\n\nWould you like me to draft your official 7-Day Statutory Refund Demand Notice now?`,
+              timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+              interactiveOptions: [
+                { label: "Create Official Complaint Letter", value: "Please create my official complaint letter now." },
+                { label: "The seller blocked my line", value: "The seller blocked my phone number and WhatsApp after receiving payment." },
+                { label: "What evidence do I need to attach?", value: "What evidence do I need to attach to the demand notice?" }
+              ]
+            };
+            setMessages((prev) => [...prev, aiReply]);
+            setIsTyping(false);
+            return;
+          }
+
+          // C: User mentions the seller blocked them or ghosted
+          if (/blocked|ghosted|unreachable|deleted/i.test(lower)) {
+            const aiReply: ChatMessage = {
+              id: "msg_ai_" + Date.now(),
+              sender: "resolve",
+              text: `Blocking your phone number or WhatsApp after accepting payment is **prima facie evidence of intentional commercial fraud** under Section 114 of the FCCPA 2018.\n\nHere are the critical steps to protect your claim immediately:\n\n1. **Preserve Digital Evidence**: Take full screenshots of the chat history, vendor handle, phone number, and bank account name before they delete their profile or messages.\n2. **Flag Receiving Account**: Report the vendor's account number to your bank's fraud desk as an active scam to restrict their BVN.\n3. **Official Redress Filing**: I will prepare a formal Statutory Demand Notice citing Section 114, which serves as your mandatory evidentiary backing for FCCPC escalation.\n\nWould you like me to generate your official dispute document now?`,
+              timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+              interactiveOptions: [
+                { label: "Create Official Complaint Letter", value: "Please create my official complaint letter now." },
+                { label: "How to dispute via Paystack/Flutterwave?", value: "How do I dispute this if I paid with Paystack or Flutterwave?" },
+                { label: "How to report to FCCPC", value: "How do I submit this directly to the FCCPC portal?" }
+              ]
+            };
+            setMessages((prev) => [...prev, aiReply]);
+            setIsTyping(false);
+            return;
+          }
+
+          // D: User asks about evidence to attach
+          if (/evidence|attach|proof|documents/i.test(lower)) {
+            const aiReply: ChatMessage = {
+              id: "msg_ai_" + Date.now(),
+              sender: "resolve",
+              text: `To ensure your dispute is airtight under FCCPA rules, assemble these four items:\n\n1. **Proof of Payment**: Official PDF transaction receipt from your bank showing the date, amount, and recipient account details.\n2. **Agreement / Order Summary**: Screenshots of the WhatsApp, Instagram DM, or invoice agreeing on the price, delivery timeframe, and items.\n3. **Proof of Breach / Ghosting**: Screenshots showing your follow-up inquiries being ignored, unanswered, or showing that you were blocked.\n4. **Official 7-Day Demand Notice**: The formal redress letter generated by Resolve.\n\nReady to generate your formal dispute letter?`,
+              timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+              interactiveOptions: [
+                { label: "Create Official Complaint Letter", value: "Please create my official complaint letter now." },
+                { label: "How to report to FCCPC", value: "How do I submit this directly to the FCCPC portal?" }
+              ]
+            };
+            setMessages((prev) => [...prev, aiReply]);
+            setIsTyping(false);
+            return;
+          }
+
+          // E: User asks how to report to FCCPC
+          if (/fccpc|portal|report to fccpc/i.test(lower)) {
+            const aiReply: ChatMessage = {
+              id: "msg_ai_" + Date.now(),
+              sender: "resolve",
+              text: `The **Federal Competition and Consumer Protection Commission (FCCPC)** is Nigeria's federal authority for consumer redress:\n\n1. Visit the official portal: **complaints.fccpc.gov.ng**\n2. Select "Submit New Consumer Complaint" and categorize under "E-Commerce / Online Purchase".\n3. Upload your transaction receipt, chat evidence, and the official 7-Day Demand Notice generated by Resolve.\n4. The FCCPC summons the vendor or freezes their registered business account if they fail to provide restitution.\n\nWould you like me to draft your official demand letter to attach to your FCCPC filing?`,
+              timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+              interactiveOptions: [
+                { label: "Create Official Complaint Letter", value: "Please create my official complaint letter now." },
+                { label: "I paid via direct bank transfer", value: "I paid via a direct bank transfer to the seller's account." }
+              ]
+            };
+            setMessages((prev) => [...prev, aiReply]);
+            setIsTyping(false);
+            return;
+          }
+
+          // Default fallback for Merchant Non-delivery
           const aiReply: ChatMessage = {
             id: "msg_ai_" + Date.now(),
             sender: "resolve",
-            text: `Under Section 114 of the Federal Competition and Consumer Protection Act (FCCPA) 2018, online vendors are legally required to deliver paid goods on time or issue a mandatory full refund.\n\nI can prepare a formal 7-Day Statutory Refund Demand Notice to deliver to the merchant, which serves as mandatory evidence if you escalate to the FCCPC portal.`,
+            text: `Under Section 114 of the Federal Competition and Consumer Protection Act (FCCPA) 2018, online vendors are legally required to deliver paid goods on time or issue a mandatory full refund.\n\nTo guide you on the fastest recovery path: did you pay the seller via direct bank transfer, or through an online checkout link like Paystack or Flutterwave?`,
+            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+            interactiveOptions: [
+              { label: "Direct bank transfer to their account", value: "I paid via a direct bank transfer to the seller's account." },
+              { label: "How to dispute via Paystack/Flutterwave?", value: "How do I dispute this if I paid with Paystack or Flutterwave?" },
+              { label: "The seller blocked my line", value: "The seller blocked my phone number and WhatsApp after receiving payment." }
+            ]
+          };
+          setMessages((prev) => [...prev, aiReply]);
+          setIsTyping(false);
+          return;
+        }
+
+        // If Undelivered Airtime / Data
+        if (updatedFacts.category === "UNDELIVERED_AIRTIME_DATA") {
+          if (/bank app|mobile app|app/i.test(lower)) {
+            const aiReply: ChatMessage = {
+              id: "msg_ai_" + Date.now(),
+              sender: "resolve",
+              text: "Since you purchased through your bank app, this is almost always a failure between your bank and the VTU aggregator (like Interswitch or Unified Payments), NOT the telecom network.\n\nCalling MTN, Airtel, Glo, or 9mobile will not help because their systems have no record of the payment.\n\nUnder NCC and CBN regulations, your bank must reverse the debit within **24 to 48 hours**. If it exceeds 48 hours, you have the right to lodge a formal complaint.\n\nWould you like me to draft a complaint letter to your bank's dispute desk?",
+              timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+              interactiveOptions: [
+                { label: "Create Official Complaint Letter", value: "Please create my official complaint letter now." },
+                { label: "It has been over 48 hours", value: "It has been more than 48 hours and the money was not reversed." }
+              ]
+            };
+            setMessages((prev) => [...prev, aiReply]);
+            setIsTyping(false);
+            return;
+          }
+
+          const aiReply: ChatMessage = {
+            id: "msg_ai_" + Date.now(),
+            sender: "resolve",
+            text: "For airtime or data purchased directly from a telecom provider, the Nigerian Communications Commission (NCC) mandates resolution within 24 hours.\n\nIf your service has not been delivered or reversed, you can dial the **NCC Toll-Free Consumer Helpline at 622** from any mobile phone to register an immediate regulatory grievance.\n\nWould you like me to prepare a formal escalation complaint?",
             timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
             interactiveOptions: [
               { label: "Create Official Complaint Letter", value: "Please create my official complaint letter now." },
-              { label: "How to dispute via Paystack/Flutterwave?", value: "How do I dispute this if I paid with Paystack or Flutterwave?" }
+              { label: "Bought from my bank mobile app", value: "I bought it through my bank mobile app." }
             ]
           };
           setMessages((prev) => [...prev, aiReply]);

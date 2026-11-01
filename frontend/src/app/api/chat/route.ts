@@ -17,19 +17,29 @@ COMMUNICATION GUIDELINES:
 - Strictly DO NOT use any emojis anywhere in your response.
 - Do NOT use obscure jargon like "dossier" — use "Official Complaint Letter" or "Dispute Letter".`;
 
+export async function GET() {
+  const rawKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
+  const cleanKey = rawKey.trim().replace(/^["']|["']$/g, "");
+  return NextResponse.json({
+    status: cleanKey ? "configured" : "missing_key",
+    hasKey: Boolean(cleanKey),
+    keyPrefix: cleanKey ? cleanKey.substring(0, 6) + "..." : null
+  });
+}
+
 export async function POST(req: Request) {
   try {
     const { messages, currentFacts } = await req.json();
 
-    const rawApiKey = process.env.GEMINI_API_KEY;
+    const rawApiKey = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
     if (!rawApiKey) {
-      console.warn("[Resolve /api/chat] GEMINI_API_KEY is not configured.");
+      console.warn("[Resolve /api/chat] GEMINI_API_KEY is not configured on Vercel.");
       return NextResponse.json(
         { error: "GEMINI_API_KEY is not configured on Vercel." },
         { status: 503 }
       );
     }
-    const apiKey = rawApiKey.trim();
+    const apiKey = rawApiKey.trim().replace(/^["']|["']$/g, "");
 
     // Build contents strictly compliant with Gemini API specifications:
     // 1. Must start with role "user"
@@ -74,50 +84,49 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No user message found" }, { status: 400 });
     }
 
-    // Primary: gemini-1.5-flash (Universal support across all Gemini API keys)
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const encodedKey = encodeURIComponent(apiKey);
+    const candidateModels = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"];
 
-    let geminiRes = await fetch(geminiUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey
-      },
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
-        contents,
-        generationConfig: {
-          temperature: 0.3,
-          maxOutputTokens: 800
+    let reply = "";
+    let lastError = "";
+
+    for (const model of candidateModels) {
+      try {
+        const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodedKey}`;
+        const res = await fetch(geminiUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": apiKey
+          },
+          body: JSON.stringify({
+            system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+            contents,
+            generationConfig: {
+              temperature: 0.3,
+              maxOutputTokens: 800
+            }
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+          if (reply) break;
+        } else {
+          lastError = await res.text();
+          console.warn(`[Gemini model ${model} failed]:`, res.status, lastError);
         }
-      })
-    });
-
-    if (!geminiRes.ok) {
-      // Secondary fallback: gemini-2.5-flash
-      const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-      geminiRes = await fetch(fallbackUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-goog-api-key": apiKey
-        },
-        body: JSON.stringify({
-          system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
-          contents,
-          generationConfig: { temperature: 0.3, maxOutputTokens: 800 }
-        })
-      });
-
-      if (!geminiRes.ok) {
-        const errText = await geminiRes.text();
-        console.error("[Gemini API Error]", geminiRes.status, errText);
-        return NextResponse.json({ error: errText }, { status: geminiRes.status });
+      } catch (err: any) {
+        lastError = err.message || "Network error calling Gemini API";
+        console.warn(`[Gemini model ${model} error]:`, lastError);
       }
     }
 
-    const data = await geminiRes.json();
-    let reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    if (!reply) {
+      console.error("[All Gemini candidate models failed]", lastError);
+      return NextResponse.json({ error: lastError || "Failed to generate reply" }, { status: 502 });
+    }
 
     // Strip any accidental emojis
     reply = reply.replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]|[\u2600-\u27BF]/g, "");
