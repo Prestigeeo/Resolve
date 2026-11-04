@@ -4,6 +4,8 @@ import React, { useState, useEffect, useRef } from "react";
 import { Header } from "../components/Header";
 import { EmergencyBanner } from "../components/EmergencyBanner";
 import { DisputeHistory, StoredDisputeCase } from "../components/DisputeHistory";
+import { CaseLaunchpad } from "../components/CaseLaunchpad";
+import { CaseWorkspace } from "../components/CaseWorkspace";
 import { 
   api, 
   IntakeAnalysisResponse, 
@@ -146,7 +148,8 @@ export default function Home() {
     fetch("/api/chat")
       .then((res) => res.json())
       .then((data) => {
-        setAiConnected(Boolean(data?.hasKey));
+        setAiConnected(Boolean(data?.valid));
+        if (!data?.valid && data?.message) setAiErrorMsg(data.message);
       })
       .catch(() => setAiConnected(false));
 
@@ -353,6 +356,7 @@ export default function Home() {
           if (errData?.error && (geminiRes.status === 400 || geminiRes.status === 403 || geminiRes.status === 502)) {
             setAiErrorMsg(`Gemini API: ${typeof errData.error === 'string' ? errData.error.slice(0, 100) : 'Authentication Issue'}`);
             setAiConnected(false);
+            setAiErrorMsg("AI assistance is temporarily unavailable. Your rule-based recovery plan is still available.");
           }
         }
       } catch (err) {
@@ -997,7 +1001,11 @@ export default function Home() {
         )}
 
         {/* View: Conversational Chat Assistant (Clean, Focused, Friendly) */}
-        {activeTab === "intake" && (
+        {activeTab === "intake" && !currentFacts && messages.length <= 1 && (
+          <CaseLaunchpad onStart={handleOptionClick} />
+        )}
+
+        {activeTab === "intake" && (currentFacts || messages.length > 1) && (
           <div className="flex-1 flex flex-col bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
             
             {/* Top Sub-Bar */}
@@ -1012,13 +1020,13 @@ export default function Home() {
                 {aiConnected === true && (
                   <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-semibold">
                     <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
-                    <span>Gemini AI Connected</span>
+                    <span>AI assistance available</span>
                   </span>
                 )}
                 {aiConnected === false && (
                   <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 text-[10px] font-medium" title={aiErrorMsg || "Add GEMINI_API_KEY in Vercel to activate Gemini"}>
                     <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                    <span>Offline Rule Mode</span>
+                  <span>Verified rule mode</span>
                   </span>
                 )}
                 {currentFacts?.category && currentFacts.category !== "AMBIGUOUS" && (
@@ -1032,9 +1040,11 @@ export default function Home() {
             {aiErrorMsg && !aiConnected && (
               <div className="px-5 py-2 bg-amber-50/80 border-b border-amber-200 text-[11px] text-amber-800 flex items-center space-x-2">
                 <Info className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                <span>Notice: {aiErrorMsg}. Running in verified Nigerian rule mode.</span>
+                <span>AI assistance is unavailable. Resolve is using its verified rule engine for this case.</span>
               </div>
             )}
+
+            {currentFacts && <CaseWorkspace facts={currentFacts} />}
 
             {/* Messages Thread */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">

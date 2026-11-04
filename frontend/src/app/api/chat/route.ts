@@ -1,5 +1,16 @@
 import { NextResponse } from "next/server";
 
+const modelName = () => {
+  const configured = (process.env.GEMINI_MODEL || "gemini-2.5-flash").trim();
+  return /^[a-z0-9.-]+$/i.test(configured) ? configured : "gemini-2.5-flash";
+};
+
+const publicStatus = (status: number) => {
+  if (status === 401 || status === 403) return "AI credentials need attention. Resolve is using its verified rule engine.";
+  if (status === 429) return "AI assistance is busy right now. Resolve is using its verified rule engine.";
+  return "AI assistance is temporarily unavailable. Resolve is using its verified rule engine.";
+};
+
 const SYSTEM_PROMPT = `You are Resolve, an empathetic, highly knowledgeable consumer transaction dispute advocate in Nigeria.
 Your role is to help Nigerian consumers understand, document, and resolve transaction issues under verified regulations:
 1. Failed Bank Transfers (CBN 14-Day Mandatory SLA, 30-digit NIBSS Session ID tracing, CBN CPD escalation).
@@ -32,7 +43,7 @@ export async function GET() {
 
   // Ping Gemini API with a minimal token request to verify the key with Google
   try {
-    const testUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+    const testUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName()}:generateContent`;
     const res = await fetch(testUrl, {
       method: "POST",
       headers: {
@@ -50,27 +61,22 @@ export async function GET() {
         status: "configured",
         hasKey: true,
         valid: true,
-        keyPrefix: apiKey.substring(0, 6) + "...",
-        message: "Gemini API key is active and verified by Google!"
+        message: "AI assistance is available."
       });
     }
 
-    const errText = await res.text();
     return NextResponse.json({
       status: "invalid_key",
       hasKey: true,
       valid: false,
-      googleStatus: res.status,
-      googleError: errText,
-      keyPrefix: apiKey.substring(0, 6) + "...",
-      message: `Google returned HTTP ${res.status}: ${errText}`
+      message: publicStatus(res.status)
     });
   } catch (err: any) {
     return NextResponse.json({
       status: "network_error",
       hasKey: true,
       valid: false,
-      error: err.message
+      message: "AI assistance is temporarily unavailable."
     });
   }
 }
@@ -83,7 +89,7 @@ export async function POST(req: Request) {
     if (!rawApiKey) {
       console.warn("[Resolve /api/chat] GEMINI_API_KEY is not configured on Vercel.");
       return NextResponse.json(
-        { error: "GEMINI_API_KEY is not configured on Vercel." },
+        { error: "AI assistance is unavailable. Resolve is using its verified rule engine." },
         { status: 503 }
       );
     }
@@ -132,16 +138,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No user message found" }, { status: 400 });
     }
 
-    const candidateModels = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"];
-
-    let reply = "";
-    let lastError = "";
-
-    for (const model of candidateModels) {
-      try {
-        // Attempt 1: Header auth (standard for AQ auth keys)
+    const model = modelName();
+    try {
         const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
-        let res = await fetch(geminiUrl, {
+        const res = await fetch(geminiUrl, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -157,51 +157,19 @@ export async function POST(req: Request) {
           })
         });
 
-        // Attempt 2: Query parameter auth fallback
-        if (!res.ok) {
-          const urlWithKey = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
-          res = await fetch(urlWithKey, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "x-goog-api-key": apiKey
-            },
-            body: JSON.stringify({
-              system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
-              contents,
-              generationConfig: {
-                temperature: 0.3,
-                maxOutputTokens: 800
-              }
-            })
-          });
-        }
-
         if (res.ok) {
           const data = await res.json();
-          reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-          if (reply) break;
-        } else {
-          lastError = await res.text();
-          console.warn(`[Gemini model ${model} failed]:`, res.status, lastError);
+          const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+          if (reply) return NextResponse.json({ reply: reply.replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]|[\u2600-\u27BF]/g, "") });
         }
-      } catch (err: any) {
-        lastError = err.message || "Network error calling Gemini API";
-        console.warn(`[Gemini model ${model} error]:`, lastError);
-      }
+        console.warn(`[Gemini model ${model} failed]`, res.status);
+        return NextResponse.json({ error: publicStatus(res.status) }, { status: 502 });
+    } catch (error) {
+      console.warn("[Resolve AI request failed]", error);
+      return NextResponse.json({ error: "AI assistance is temporarily unavailable. Resolve is using its verified rule engine." }, { status: 502 });
     }
-
-    if (!reply) {
-      console.error("[All Gemini candidate models failed]", lastError);
-      return NextResponse.json({ error: lastError || "Failed to generate reply" }, { status: 502 });
-    }
-
-    // Strip any accidental emojis
-    reply = reply.replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]|[\u2600-\u27BF]/g, "");
-
-    return NextResponse.json({ reply });
-  } catch (error: any) {
+  } catch (error) {
     console.error("[Chat Route Error]", error);
-    return NextResponse.json({ error: error.message || "Failed to generate reply" }, { status: 500 });
+    return NextResponse.json({ error: "AI assistance is temporarily unavailable. Resolve is using its verified rule engine." }, { status: 500 });
   }
 }
