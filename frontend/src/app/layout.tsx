@@ -14,8 +14,8 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Resolve — AI Consumer Redress & Dispute Assistant",
-  description: "Decision-support system for failed bank transfers, undelivered airtime/data, stolen funds, and merchant disputes in Nigeria (CBN, NCC, FCCPC).",
+  title: "RESOLVENigeria — Transaction Redress & Dispute Resolution",
+  description: "Intelligent, verified consumer redress for failed transfers, online vendor non-delivery, undelivered airtime, and unauthorized debits under CBN, NCC, and FCCPC rules.",
 };
 
 export default function RootLayout({
@@ -24,8 +24,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased selection:bg-indigo-600 selection:text-white`}>
+    <html lang="en">
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased selection:bg-[#D95D39] selection:text-white bg-[#FAF6F0] text-[#2B1E1A]`}>
         {children}
       </body>
     </html>

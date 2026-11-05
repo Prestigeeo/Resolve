@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ArrowRight, FileCheck2, Landmark, ShieldAlert, ShoppingBag, Smartphone, Waypoints } from "lucide-react";
+import { Landmark, ShoppingBag, Store, HelpCircle, ArrowRight, ShieldCheck, Sparkles, Scale, User, FileText } from "lucide-react";
 
 interface CaseLaunchpadProps {
   onStart: (description: string) => void;
@@ -9,70 +9,121 @@ interface CaseLaunchpadProps {
 
 const pathways = [
   {
-    title: "Failed transfer",
-    description: "You were debited but the recipient was not credited.",
-    prompt: "I was debited for a transfer but the recipient did not receive the money.",
+    title: "Failed Bank Transfer",
+    role: "Customer",
+    description: "Account was debited for a transfer, but the recipient never received value.",
+    prompt: "I was debited for a bank transfer and the recipient has not received the money.",
     icon: Landmark,
-    accent: "text-blue-700 bg-blue-50 border-blue-100",
+    theme: {
+      border: "hover:border-[#D95D39]/50",
+      iconBg: "bg-gradient-to-br from-[#D95D39] to-[#C84B27] text-white shadow-md shadow-[#D95D39]/20",
+      accentPill: "bg-[#D95D39]/10 text-[#D95D39] border-[#D95D39]/25",
+      link: "text-[#D95D39]"
+    }
   },
   {
-    title: "Vendor did not deliver",
-    description: "A seller received payment but will not deliver or refund.",
-    prompt: "I paid an online vendor who has not delivered my order or refunded me.",
+    title: "Online Order & Delivery",
+    role: "Buyer / Customer",
+    description: "Paid an online seller but the order has delayed or remains unfulfilled.",
+    prompt: "I bought an item from an online seller and the delivery has delayed.",
     icon: ShoppingBag,
-    accent: "text-amber-700 bg-amber-50 border-amber-100",
+    theme: {
+      border: "hover:border-[#E07A5F]/60",
+      iconBg: "bg-gradient-to-br from-[#E07A5F] to-[#D95D39] text-white shadow-md shadow-[#E07A5F]/20",
+      accentPill: "bg-[#E07A5F]/15 text-[#C84B27] border-[#E07A5F]/30",
+      link: "text-[#E07A5F]"
+    }
   },
   {
-    title: "Missing airtime or data",
-    description: "You were debited but the value never reached your line.",
-    prompt: "I was debited for airtime or data but did not receive it.",
-    icon: Smartphone,
-    accent: "text-indigo-700 bg-indigo-50 border-indigo-100",
+    title: "Merchant Settlements & Disputes",
+    role: "Vendor / Seller",
+    description: "Customer disputes, delayed payment gateway settlements, or handling refund requests.",
+    prompt: "I am a merchant dealing with a customer payment dispute or delayed gateway settlement.",
+    icon: Store,
+    theme: {
+      border: "hover:border-[#F2CC8F]",
+      iconBg: "bg-gradient-to-br from-[#F2CC8F] to-[#E07A5F] text-[#2B1E1A] shadow-md shadow-[#F2CC8F]/30",
+      accentPill: "bg-[#F2CC8F]/30 text-[#8C2E0B] border-[#F2CC8F]/60",
+      link: "text-[#C84B27]"
+    }
   },
   {
-    title: "Fraud or stolen phone",
-    description: "Lock the account first, then preserve the recovery trail.",
-    prompt: "My phone was stolen or I noticed an unauthorized transaction on my account.",
-    icon: ShieldAlert,
-    accent: "text-rose-700 bg-rose-50 border-rose-100",
+    title: "Banking Terms & PND Freeze",
+    role: "Financial Inquirer",
+    description: "Understand Post-No-Debit (PND), BVN/NIN linkage, chargebacks, and CBN timelines.",
+    prompt: "What does a Post-No-Debit (PND) or account freeze mean, and how do I resolve it?",
+    icon: HelpCircle,
+    theme: {
+      border: "hover:border-[#C84B27]/60",
+      iconBg: "bg-gradient-to-br from-[#C84B27] to-[#8C271E] text-white shadow-md shadow-[#C84B27]/25",
+      accentPill: "bg-[#C84B27]/12 text-[#C84B27] border-[#C84B27]/30",
+      link: "text-[#C84B27]"
+    }
   },
 ];
 
 export function CaseLaunchpad({ onStart }: CaseLaunchpadProps) {
   return (
-    <section className="flex-1 overflow-y-auto pb-6">
-      <div className="rounded-3xl bg-slate-950 px-6 py-8 sm:px-10 sm:py-12 text-white shadow-xl overflow-hidden relative">
-        <div className="absolute -right-24 -top-20 h-72 w-72 rounded-full bg-blue-500/20 blur-3xl" />
-        <div className="relative max-w-2xl">
-          <p className="text-xs font-bold tracking-[0.18em] uppercase text-blue-300">Consumer redress command centre</p>
-          <h1 className="mt-3 text-3xl sm:text-4xl font-extrabold tracking-tight">Know your next move before your case goes cold.</h1>
-          <p className="mt-4 max-w-xl text-sm sm:text-base leading-relaxed text-slate-300">
-            Resolve turns a transaction incident into a verified action plan: the evidence to preserve, the institution to contact, and the deadline that matters.
-          </p>
-          <div className="mt-6 flex flex-wrap gap-2 text-xs font-semibold text-slate-200">
-            <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5">Evidence-first</span>
-            <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5">Rule-based routing</span>
-            <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5">Source-linked guidance</span>
-          </div>
-        </div>
+    <div className="flex-1 flex flex-col items-center justify-center py-6 sm:py-10 px-4 sm:px-6 max-w-4xl mx-auto text-center">
+      
+      {/* Top Subtle Pill */}
+      <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-white/90 border border-[#E07A5F]/25 text-xs font-semibold text-[#2B1E1A] shadow-xs mb-5">
+        <Sparkles className="w-3.5 h-3.5 text-[#D95D39]" />
+        <span>Financial Resolution Companion</span>
+        <span className="text-[#D95D39] font-bold">&bull; Nigeria</span>
       </div>
 
-      <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {pathways.map(({ title, description, prompt, icon: Icon, accent }) => (
-          <button key={title} onClick={() => onStart(prompt)} className="group text-left rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md">
-            <div className={`inline-flex rounded-xl border p-2.5 ${accent}`}><Icon className="h-5 w-5" /></div>
-            <h2 className="mt-4 text-sm font-bold text-slate-900">{title}</h2>
-            <p className="mt-1 text-xs leading-relaxed text-slate-600">{description}</p>
-            <span className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-blue-700">Assess this case <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" /></span>
+      {/* Main Headline with Serif Elegance & Warm Gradient */}
+      <h1 className="text-3xl sm:text-5xl font-extrabold text-[#2B1E1A] tracking-tight font-outfit max-w-2xl leading-[1.15]">
+        How can we help{" "}
+        <span className="font-serif-display italic font-normal text-gradient-fire pr-1">
+          guide
+        </span>{" "}
+        your transaction today?
+      </h1>
+
+      <p className="mt-3.5 text-sm sm:text-base text-[#2B1E1A]/80 font-medium max-w-xl leading-relaxed">
+        Your companion for Nigerian banking regulations, merchant dispute resolution, and transaction clarity under{" "}
+        <strong className="text-[#2B1E1A] font-semibold">CBN</strong>,{" "}
+        <strong className="text-[#2B1E1A] font-semibold">NIBSS</strong>, and{" "}
+        <strong className="text-[#2B1E1A] font-semibold">FCCPC</strong> guidelines.
+      </p>
+
+      {/* 4 Interactive Multi-Perspective Cards */}
+      <div className="mt-8 sm:mt-10 grid grid-cols-1 sm:grid-cols-2 gap-4 w-full text-left">
+        {pathways.map(({ title, role, description, prompt, icon: Icon, theme }) => (
+          <button
+            key={title}
+            onClick={() => onStart(prompt)}
+            className={`group relative flex flex-col justify-between rounded-2xl border border-[#E07A5F]/20 bg-white/85 backdrop-blur-md p-5 sm:p-6 shadow-sm shadow-[#2B1E1A]/5 hover:shadow-xl hover:shadow-[#D95D39]/10 transition-all duration-300 hover:-translate-y-1 active:scale-[0.99] ${theme.border}`}
+          >
+            <div>
+              {/* Custom Circular Icon Container */}
+              <div className="flex items-center justify-between">
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-transform duration-300 group-hover:scale-105 ${theme.iconBg}`}>
+                  <Icon className="h-6 w-6" />
+                </div>
+                <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border uppercase tracking-wider ${theme.accentPill}`}>
+                  {role}
+                </span>
+              </div>
+
+              <h2 className="mt-4 text-base font-bold text-[#2B1E1A] group-hover:text-[#D95D39] transition-colors font-outfit">
+                {title}
+              </h2>
+              <p className="mt-1.5 text-xs text-[#2B1E1A]/75 font-medium leading-relaxed">
+                {description}
+              </p>
+            </div>
+
+            <div className={`mt-5 pt-3 border-t border-[#E07A5F]/15 flex items-center space-x-1.5 text-xs font-bold ${theme.link} group-hover:translate-x-1 transition-transform`}>
+              <span>Start consultation</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </div>
           </button>
         ))}
       </div>
 
-      <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="rounded-2xl border border-slate-200 bg-white p-4"><Waypoints className="h-4 w-4 text-blue-600" /><h3 className="mt-2 text-xs font-bold text-slate-900">1. Route the case</h3><p className="mt-1 text-[11px] leading-relaxed text-slate-500">Separate a failed payment from a merchant breach or urgent fraud.</p></div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-4"><FileCheck2 className="h-4 w-4 text-blue-600" /><h3 className="mt-2 text-xs font-bold text-slate-900">2. Close evidence gaps</h3><p className="mt-1 text-[11px] leading-relaxed text-slate-500">Collect the precise records required before you complain.</p></div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-4"><ShieldAlert className="h-4 w-4 text-blue-600" /><h3 className="mt-2 text-xs font-bold text-slate-900">3. Act at the right time</h3><p className="mt-1 text-[11px] leading-relaxed text-slate-500">Follow provider, regulator, and recovery deadlines with confidence.</p></div>
-      </div>
-    </section>
+    </div>
   );
 }

@@ -88,5 +88,275 @@
     "expected_is_emergency": false,
     "expected_is_complete": false,
     "expected_next_step": "STAGE_2_REGULATOR_ESCALATION"
+  },
+  {
+    "id": "eval_11",
+    "description": "I sent 15,000 naira with Kuda to PalmPay yesterday around 2pm. Kuda debited my balance but my brother has not seen the alert.",
+    "expected_category": "FAILED_TRANSFER",
+    "expected_amount": 15000,
+    "expected_is_emergency": false,
+    "expected_is_complete": false,
+    "expected_next_step": "STAGE_1_PROVIDER_COMPLAINT"
+  },
+  {
+    "id": "eval_12",
+    "description": "Moniepoint transfer of 80,000 naira to UBA failed. Debit alert arrived but beneficiary account is empty.",
+    "expected_category": "FAILED_TRANSFER",
+    "expected_amount": 80000,
+    "expected_is_emergency": false,
+    "expected_is_complete": false,
+    "expected_next_step": "STAGE_1_PROVIDER_COMPLAINT"
+  },
+  {
+    "id": "eval_13",
+    "description": "Transfer from FirstBank to GTBank 10000 naira since 3 days ago. FirstBank ticket number is FB-10293.",
+    "expected_category": "FAILED_TRANSFER",
+    "expected_amount": 10000,
+    "expected_is_emergency": false,
+    "expected_is_complete": false,
+    "expected_next_step": "STAGE_1_PROVIDER_COMPLAINT"
+  },
+  {
+    "id": "eval_14",
+    "description": "I did USSD transfer with *966# Zenith Bank for 35,000 naira. Zenith removed the money and sent SMS, but recipient bank Providus has no record of it.",
+    "expected_category": "FAILED_TRANSFER",
+    "expected_amount": 35000,
+    "expected_is_emergency": false,
+    "expected_is_complete": false,
+    "expected_next_step": "STAGE_1_PROVIDER_COMPLAINT"
+  },
+  {
+    "id": "eval_15",
+    "description": "My bank Zenith debited me 200,000 naira 18 days ago for a transfer. I reported to customer care ticket ZEN-88412 but no refund till now.",
+    "expected_category": "FAILED_TRANSFER",
+    "expected_amount": 20000,
+    "expected_is_emergency": false,
+    "expected_is_complete": false,
+    "expected_next_step": "STAGE_2_REGULATOR_ESCALATION"
+  },
+  {
+    "id": "eval_16",
+    "description": "I purchased 10,000 MTN data on OPay app, OPay says successful but *312# shows 0MB and no data was received.",
+    "expected_category": "UNDELIVERED_AIRTIME_DATA",
+    "expected_amount": 10000,
+    "expected_is_emergency": false,
+    "expected_is_complete": false,
+    "expected_next_step": "STAGE_1_PROVIDER_COMPLAINT"
+  },
+  {
+    "id": "eval_17",
+    "description": "Recharged 1500 Glo airtime via Access Bank mobile banking. The bank deducted my account but my phone balance never increased.",
+    "expected_category": "UNDELIVERED_AIRTIME_DATA",
+    "expected_amount": 1500,
+    "expected_is_emergency": false,
+    "expected_is_complete": false,
+    "expected_next_step": "STAGE_1_PROVIDER_COMPLAINT"
+  },
+  {
+    "id": "eval_18",
+    "description": "I buy 2000 airtime 9mobile directly from my phone with recharge code. Network say pin already used.",
+    "expected_category": "UNDELIVERED_AIRTIME_DATA",
+    "expected_amount": 2000,
+    "expected_is_emergency": false,
+    "expected_is_complete": false,
+    "expected_next_step": "STAGE_1_PROVIDER_COMPLAINT"
+  },
+  {
+    "id": "eval_19",
+    "description": "I bought 20,000 naira MTN SME data from an online portal 10 days ago, they debited me but nothing arrived. MTN ticket MTN-91024 has had no response.",
+    "expected_category": "UNDELIVERED_AIRTIME_DATA",
+    "expected_amount": 20000,
+    "expected_is_emergency": false,
+    "expected_is_complete": false,
+    "expected_next_step": "STAGE_2_REGULATOR_ESCALATION"
+  },
+  {
+    "id": "eval_20",
+    "description": "They debited my FirstBank 2,500 for Airtel airtime. Still pending for 48 hours without credit.",
+    "expected_category": "UNDELIVERED_AIRTIME_DATA",
+    "expected_amount": 2500,
+    "expected_is_emergency": false,
+    "expected_is_complete": false,
+    "expected_next_step": "STAGE_1_PROVIDER_COMPLAINT"
+  },
+  {
+    "id": "eval_21",
+    "description": "Armed robbers snatched my bag containing my phone in Ikeja. They just transferred 150,000 from my UBA account! Block my account now!",
+    "expected_category": "STOLEN_FUNDS_FRAUD",
+    "expected_amount": 150000,
+    "expected_is_emergency": true,
+    "expected_is_complete": false,
+    "expected_next_step": "EMERGENCY_LOCK_AND_LIEN"
+  },
+  {
+    "id": "eval_22",
+    "description": "I woke up and saw three unauthorized debits of 50,000 naira each from Access Bank that I never authorized.",
+    "expected_category": "STOLEN_FUNDS_FRAUD",
+    "expected_amount": 50000,
+    "expected_is_emergency": true,
+    "expected_is_complete": false,
+    "expected_next_step": "EMERGENCY_LOCK_AND_LIEN"
+  },
+  {
+    "id": "eval_23",
+    "description": "Someone called posing as Zenith bank customer care and tricked me into sharing my OTP. 300k was debited immediately!",
+    "expected_category": "STOLEN_FUNDS_FRAUD",
+    "expected_amount": 300000,
+    "expected_is_emergency": true,
+    "expected_is_complete": false,
+    "expected_next_step": "EMERGENCY_LOCK_AND_LIEN"
+  },
+  {
+    "id": "eval_24",
+    "description": "My SIM card stopped working and before I knew it, fraudsters used it to withdraw 450,000 naira from my GTBank app.",
+    "expected_category": "STOLEN_FUNDS_FRAUD",
+    "expected_amount": 450000,
+    "expected_is_emergency": true,
+    "expected_is_complete": false,
+    "expected_next_step": "EMERGENCY_LOCK_AND_LIEN"
+  },
+  {
+    "id": "eval_25",
+    "description": "Unauthorized POS withdrawal on my debit card of 65,000 naira while the card was inside my wallet.",
+    "expected_category": "STOLEN_FUNDS_FRAUD",
+    "expected_amount": 65000,
+    "expected_is_emergency": true,
+    "expected_is_complete": false,
+    "expected_next_step": "EMERGENCY_LOCK_AND_LIEN"
+  },
+  {
+    "id": "eval_26",
+    "description": "I ordered human hair worth 85,000 naira from an Instagram page. After paying to her Moniepoint account she stopped picking calls and blocked my handle.",
+    "expected_category": "MERCHANT_NON_DELIVERY",
+    "expected_amount": 85000,
+    "expected_is_emergency": false,
+    "expected_is_complete": false,
+    "expected_next_step": "FCCPC_COMMERCIAL_REDRESS"
+  },
+  {
+    "id": "eval_27",
+    "description": "I paid a furniture maker 150,000 naira on WhatsApp to deliver a dining table within two weeks. 1 month has passed and he is giving endless excuses.",
+    "expected_category": "MERCHANT_NON_DELIVERY",
+    "expected_amount": 150000,
+    "expected_is_emergency": false,
+    "expected_is_complete": false,
+    "expected_next_step": "FCCPC_COMMERCIAL_REDRESS"
+  },
+  {
+    "id": "eval_28",
+    "description": "I bought running shoes for 28,000 naira on an e-commerce website using Flutterwave card checkout. Shoes were never delivered and store email bounces.",
+    "expected_category": "MERCHANT_NON_DELIVERY",
+    "expected_amount": 28000,
+    "expected_is_emergency": false,
+    "expected_is_complete": false,
+    "expected_next_step": "GATEWAY_CHARGEBACK"
+  },
+  {
+    "id": "eval_29",
+    "description": "I paid a vendor 60,000 naira on TikTok for sneakers. She sent fake tracking number and deleted her TikTok profile.",
+    "expected_category": "MERCHANT_NON_DELIVERY",
+    "expected_amount": 60000,
+    "expected_is_emergency": false,
+    "expected_is_complete": false,
+    "expected_next_step": "FCCPC_COMMERCIAL_REDRESS"
+  },
+  {
+    "id": "eval_30",
+    "description": "Paid 95,000 naira online checkout via Paystack for perfume gift box. Merchant cancelled the order without refunding my debit card.",
+    "expected_category": "MERCHANT_NON_DELIVERY",
+    "expected_amount": 95000,
+    "expected_is_emergency": false,
+    "expected_is_complete": false,
+    "expected_next_step": "GATEWAY_CHARGEBACK"
+  },
+  {
+    "id": "eval_31",
+    "description": "I invested 500,000 naira in an online forex academy that promised 40% monthly returns.",
+    "expected_category": "OUT_OF_SCOPE",
+    "expected_amount": 500000,
+    "expected_is_emergency": false,
+    "expected_is_complete": true,
+    "expected_next_step": "GENERAL_ADVISORY"
+  },
+  {
+    "id": "eval_32",
+    "description": "A travel agent took 1.2 million naira to process a Canadian study visa and gave me fake documents.",
+    "expected_category": "OUT_OF_SCOPE",
+    "expected_amount": null,
+    "expected_is_emergency": false,
+    "expected_is_complete": true,
+    "expected_next_step": "GENERAL_ADVISORY"
+  },
+  {
+    "id": "eval_33",
+    "description": "My sports betting account was suspended with 50,000 naira winnings.",
+    "expected_category": "OUT_OF_SCOPE",
+    "expected_amount": 50000,
+    "expected_is_emergency": false,
+    "expected_is_complete": true,
+    "expected_next_step": "GENERAL_ADVISORY"
+  },
+  {
+    "id": "eval_34",
+    "description": "Someone broke my car side mirror in traffic and drove away.",
+    "expected_category": "OUT_OF_SCOPE",
+    "expected_amount": null,
+    "expected_is_emergency": false,
+    "expected_is_complete": true,
+    "expected_next_step": "GENERAL_ADVISORY"
+  },
+  {
+    "id": "eval_35",
+    "description": "I need help with my transaction issue.",
+    "expected_category": "AMBIGUOUS",
+    "expected_amount": null,
+    "expected_is_emergency": false,
+    "expected_is_complete": false,
+    "expected_next_step": "CLARIFICATION_REQUIRED"
+  },
+  {
+    "id": "eval_36",
+    "description": "They debit me money.",
+    "expected_category": "AMBIGUOUS",
+    "expected_amount": null,
+    "expected_is_emergency": false,
+    "expected_is_complete": false,
+    "expected_next_step": "CLARIFICATION_REQUIRED"
+  },
+  {
+    "id": "eval_37",
+    "description": "Money left my GTBank account today.",
+    "expected_category": "AMBIGUOUS",
+    "expected_amount": null,
+    "expected_is_emergency": false,
+    "expected_is_complete": false,
+    "expected_next_step": "CLARIFICATION_REQUIRED"
+  },
+  {
+    "id": "eval_38",
+    "description": "Bank debited 18,000 naira from Stanbic IBTC to Fidelity with Session ID 100004241030999988887777666655 and beneficiary did not get it.",
+    "expected_category": "FAILED_TRANSFER",
+    "expected_amount": 18000,
+    "expected_is_emergency": false,
+    "expected_is_complete": false,
+    "expected_next_step": "STAGE_1_PROVIDER_COMPLAINT"
+  },
+  {
+    "id": "eval_39",
+    "description": "Airtime debit on FCMB 4000 naira to MTN line without credit.",
+    "expected_category": "UNDELIVERED_AIRTIME_DATA",
+    "expected_amount": 4000,
+    "expected_is_emergency": false,
+    "expected_is_complete": false,
+    "expected_next_step": "STAGE_1_PROVIDER_COMPLAINT"
+  },
+  {
+    "id": "eval_40",
+    "description": "Someone stole my handbag in the market with my phone, they are emptying my Zenith account right now!",
+    "expected_category": "STOLEN_FUNDS_FRAUD",
+    "expected_amount": null,
+    "expected_is_emergency": true,
+    "expected_is_complete": false,
+    "expected_next_step": "EMERGENCY_LOCK_AND_LIEN"
   }
 ]

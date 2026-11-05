@@ -8,9 +8,9 @@ class Settings(BaseSettings):
     API_V1_PREFIX: str = "/api/v1"
     
     # LLM Settings (gemini | openai | mock)
-    LLM_PROVIDER: Literal["gemini", "openai", "mock"] = "mock"
+    LLM_PROVIDER: Literal["gemini", "openai", "mock"] = "gemini"
     GEMINI_API_KEY: Optional[str] = None
-    GEMINI_MODEL: str = "gemini-2.5-flash"
+    GEMINI_MODEL: str = "gemini-3.5-flash-lite"
     OPENAI_API_KEY: Optional[str] = None
     OPENAI_MODEL: str = "gpt-4o-mini"
     

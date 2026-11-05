@@ -38,3 +38,16 @@ def test_sources_endpoint():
     sources = response.json()
     assert len(sources) >= 4
     assert any("CBN" in s["publisher"] for s in sources)
+
+def test_knowledge_search_endpoint():
+    response = client.get("/api/v1/knowledge/search?q=14+days+CBN+failed+transfer&category=FAILED_TRANSFER")
+    assert response.status_code == 200
+    results = response.json()
+    assert len(results) > 0
+    assert any("Central Bank" in r["publisher"] or "CBN" in r["title"] for r in results)
+
+def test_knowledge_corpus_chunks_endpoint():
+    response = client.get("/api/v1/knowledge/corpus/chunks")
+    assert response.status_code == 200
+    chunks = response.json()
+    assert len(chunks) >= 20
